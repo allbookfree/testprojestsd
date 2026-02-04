@@ -10,6 +10,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertTriangle, Sparkles } from 'lucide-react';
 import { Progress } from '../ui/progress';
+import { useSettings } from '@/hooks/use-settings';
 
 interface ImageCardProps {
   file: File;
@@ -26,8 +27,6 @@ function fileToDataURL(file: File): Promise<string> {
   });
 }
 
-const API_KEYS_STORAGE_KEY = 'gemini_api_keys';
-
 export function ImageCard({ file }: ImageCardProps) {
   const [status, setStatus] = useState<Status>('idle');
   const [metadata, setMetadata] = useState<GenerateImageMetadataOutput | null>(null);
@@ -35,6 +34,7 @@ export function ImageCard({ file }: ImageCardProps) {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout>();
+  const [settings] = useSettings();
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(file);
@@ -48,11 +48,8 @@ export function ImageCard({ file }: ImageCardProps) {
       }, 300);
 
       try {
-        const storedKeys = localStorage.getItem(API_KEYS_STORAGE_KEY);
-        const apiKeys = storedKeys ? JSON.parse(storedKeys) : [];
-        
         const dataUrl = await fileToDataURL(file);
-        const result = await runGenerateImageMetadata(dataUrl, apiKeys);
+        const result = await runGenerateImageMetadata(dataUrl, settings);
 
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
@@ -82,7 +79,7 @@ export function ImageCard({ file }: ImageCardProps) {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [file]);
+  }, [file, settings]);
 
   const renderContent = () => {
     switch (status) {
