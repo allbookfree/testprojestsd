@@ -178,7 +178,7 @@ export default function Home() {
                 </PageHeaderDescription>
             </PageHeader>
 
-            <div className="container mx-auto px-4 md:px-8 pb-16">
+            <div className="pb-16">
                 <section className="mb-12">
                     <div className="mx-auto max-w-4xl">
                         <ImageUploader onFilesAdded={handleFilesAdded} />
@@ -200,12 +200,13 @@ export default function Home() {
                                     <Download className="mr-2 h-4 w-4" />
                                     Download All (.csv)
                                 </Button>
-                                <button
+                                <Button
+                                    variant="link"
                                     onClick={handleClear}
-                                    className="text-sm font-semibold text-primary hover:underline"
+                                    className="text-sm font-semibold text-primary"
                                 >
                                     Start Over
-                                </button>
+                                </Button>
                             </div>
                         </div>
                         <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
