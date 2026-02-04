@@ -91,7 +91,8 @@ export async function runGenerateImageMetadata(
 export async function runGenerateImagePrompt(
     idea: string,
     count: number,
-    systemPrompt: string
+    systemPrompt: string,
+    settings: AppSettings
 ): Promise<GenerateImagePromptOutput | { error: string }> {
   try {
     if (!idea) {
@@ -104,11 +105,28 @@ export async function runGenerateImagePrompt(
     // Fallback to the default prompt if the user provides an empty one.
     const finalSystemPrompt = systemPrompt.trim() === '' ? DEFAULT_SYSTEM_PROMPT : systemPrompt;
 
-    const result = await generateImagePrompt({ idea, count, systemPrompt: finalSystemPrompt });
+    const result = await generateImagePrompt({ 
+        idea, 
+        count, 
+        systemPrompt: finalSystemPrompt,
+        apiKeys: settings.apiKeys,
+        model: settings.model
+    });
     return result;
   } catch (e) {
     console.error(e);
-    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    let errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+     if (errorMessage.toLowerCase().includes('all api keys failed')) {
+        if (errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('rate limit')) {
+            errorMessage = 'All available API keys have exceeded their usage quota. Please add a new key in settings or wait for the quota to reset.';
+        } else if (errorMessage.toLowerCase().includes('api key not valid')) {
+            errorMessage = 'None of the provided API keys are valid. Please add a valid key in settings.';
+        } else {
+            errorMessage = 'Processing failed after trying all API keys. Please check your keys and network connection.';
+        }
+    } else if (errorMessage.toLowerCase().includes('no google ai api key provided')) {
+        errorMessage = 'No API key found. Please add a Google AI API key in the settings panel.';
+    }
     return { error: `Failed to generate prompt: ${errorMessage}` };
   }
 }
