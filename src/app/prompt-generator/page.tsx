@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { runGenerateImagePrompt } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, Download, Wand2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { PageHeader, PageHeaderDescription, PageHeaderHeading } from '@/components/app/page-header';
+import { Card, CardContent } from '@/components/ui/card';
 
 const DEFAULT_SYSTEM_PROMPT = `You are an autonomous Halal Stock Image Prompt Generator. Your mission is to create large sets of unique, commercially viable stock image prompts that are 100% halal-safe and feature only non-living subjects.
 
@@ -65,6 +65,9 @@ export default function PromptGeneratorPage() {
   const { toast } = useToast();
 
   const handleGenerate = async () => {
+    // If the user clears the system prompt, use the default one.
+    const finalSystemPrompt = systemPrompt.trim() === '' ? DEFAULT_SYSTEM_PROMPT : systemPrompt;
+
     if (!idea.trim()) {
       toast({ variant: 'destructive', title: 'Idea is empty', description: 'Please enter an idea for your image.' });
       return;
@@ -75,7 +78,7 @@ export default function PromptGeneratorPage() {
     }
     setIsLoading(true);
     setGeneratedPrompts([]);
-    const result = await runGenerateImagePrompt(idea, count, systemPrompt);
+    const result = await runGenerateImagePrompt(idea, count, finalSystemPrompt);
     setIsLoading(false);
 
     if (result.error) {
@@ -124,71 +127,57 @@ export default function PromptGeneratorPage() {
       </PageHeader>
       
       <div className="mx-auto max-w-4xl space-y-8 pb-24">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create Your Prompts</CardTitle>
-            <CardDescription>
-              Start with a simple theme and let the AI do the creative work.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="idea-textarea">
-                    1. Base Idea or Theme
-                  </Label>
-                  <Textarea
-                    id="idea-textarea"
-                    placeholder="e.g., 'random kitchen objects', 'modern tech', 'abstract textures'"
-                    value={idea}
-                    onChange={(e) => setIdea(e.target.value)}
-                    rows={3}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="prompt-count">
-                      2. Number of Prompts
-                    </Label>
-                  <Input
-                      id="prompt-count"
-                      type="number"
-                      value={count}
-                      onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
-                      min="1"
-                      max="200"
+        <div className="space-y-6">
+          <Textarea
+            placeholder="Describe your basic idea... e.g., 'random objects', 'modern kitchen appliances', 'abstract nature textures'"
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            rows={3}
+            className="p-4 text-base"
+            disabled={isLoading}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2">
+              <Accordion type="single" collapsible className="w-full rounded-lg border bg-card p-4">
+                <AccordionItem value="item-1" className="border-none">
+                  <AccordionTrigger className="py-0 text-base font-semibold">Advanced: Customize Master Prompt</AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                     <p className="text-sm text-muted-foreground pb-2">
+                      This is the core instruction for the AI. Edit it to change its behavior. If left empty, a powerful default prompt will be used automatically.
+                     </p>
+                    <Textarea
+                      value={systemPrompt}
+                      onChange={(e) => setSystemPrompt(e.target.value)}
+                      rows={15}
+                      className="font-mono text-xs"
                       disabled={isLoading}
-                  />
-                </div>
-             </div>
-
-              <Accordion type="single" collapsible className="w-full border-t pt-6">
-                  <AccordionItem value="item-1" className="border-b-0">
-                      <AccordionTrigger>Advanced: Customize the Master Prompt</AccordionTrigger>
-                      <AccordionContent className="space-y-2 pt-2">
-                          <p className="text-sm text-muted-foreground">
-                            This is the core instruction set for the AI. Edit it to change the AI&apos;s behavior, style, and rules. If left empty, a powerful default prompt will be used automatically.
-                          </p>
-                          <Textarea
-                              id="system-prompt-textarea"
-                              value={systemPrompt}
-                              onChange={(e) => setSystemPrompt(e.target.value)}
-                              rows={15}
-                              className="font-mono text-xs"
-                              disabled={isLoading}
-                          />
-                      </AccordionContent>
-                  </AccordionItem>
+                    />
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
-            
-          </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button onClick={handleGenerate} disabled={isLoading} size="lg" className="w-full sm:w-auto">
-              <Wand2 className="mr-2 h-5 w-5" />
-              {isLoading ? `Generating ${count} prompts...` : `Generate ${count} Prompts`}
-            </Button>
-          </CardFooter>
-        </Card>
+            </div>
+
+            <div className="flex flex-col space-y-4 rounded-lg border bg-card p-4 justify-between">
+              <div className="space-y-2 text-center">
+                <Label htmlFor="prompt-count" className="font-semibold">Number of Prompts</Label>
+                <Input
+                  id="prompt-count"
+                  type="number"
+                  value={count}
+                  onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
+                  min="1"
+                  max="200"
+                  disabled={isLoading}
+                  className="mx-auto h-16 w-32 text-center text-4xl font-bold"
+                />
+              </div>
+              <Button onClick={handleGenerate} disabled={isLoading} size="lg" className="w-full">
+                <Wand2 className="mr-2 h-5 w-5" />
+                {isLoading ? `Generating ${count} prompts...` : `Generate ${count} Prompts`}
+              </Button>
+            </div>
+          </div>
+        </div>
 
         {isLoading && (
            <Card>
@@ -206,18 +195,16 @@ export default function PromptGeneratorPage() {
 
         {generatedPrompts.length > 0 && !isLoading && (
           <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Generated Prompts ({generatedPrompts.length})</CardTitle>
+              <CardContent className="p-0">
+                <div className="flex justify-between items-center p-6 pb-4">
+                  <h3 className="text-xl font-bold">Generated Prompts ({generatedPrompts.length})</h3>
                    <Button variant="outline" size="sm" onClick={handleDownloadCSV}>
                     <Download className="mr-2 h-4 w-4" />
                     Download CSV
                   </Button>
                 </div>
-              </CardHeader>
-            <CardContent>
-              <Separator className="mb-4"/>
-                <div className="max-h-[500px] overflow-y-auto">
+              <Separator/>
+                <div className="max-h-[600px] overflow-y-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
