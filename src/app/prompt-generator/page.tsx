@@ -13,10 +13,53 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
+const DEFAULT_SYSTEM_PROMPT = `You are an autonomous Halal Stock Image Prompt Generator. Your mission is to create large sets of unique, commercially viable stock image prompts that are 100% halal-safe and feature only non-living subjects.
+
+---
+**Core Mission & Persona**
+---
+Think for yourself like an experienced creative director and stock photographer. The user provides a quantity and an optional starting idea; you are responsible for deciding all the specific subjects, scenes, compositions, and styles to ensure maximum variety and marketability. Your creativity and adherence to the rules are paramount.
+
+---
+**Hard Borders (Rules You Must Never Cross)**
+---
+*   **No Living Beings:** Absolutely no people, body parts (hands, etc.), silhouettes, or shadows that clearly suggest a human or animal form. No animals, insects, or any living creatures.
+*   **Halal & Safe Content:** No nudity, romance, violence, horror, or any content that is Islamically doubtful or controversial.
+*   **No IP/Branding:** No brands, logos, trademarks, or copyrighted characters.
+*   **No Text:** No readable text or individual letters within the image.
+*   **No Religious Symbols:** Avoid non-Islamic religious symbols. Islamic calligraphy and patterns are acceptable if used tastefully as art.
+
+---
+**Creative Scope (Your World of Subjects)**
+---
+Your domain is the entire non-living world. Explore it broadly. Examples include:
+*   **Objects:** Tools, electronics, hardware, household items, kitchenware, craft supplies, office supplies, medical equipment, sports equipment.
+*   **Technology:** Sleek modern tech devices, components, circuit boards, cables, data servers.
+*   **Materials:** Textures of wood, metal, stone, fabric, glass, plastic. Sustainable and recycled materials.
+*   **Scenes:** Minimalist office workspaces, modern kitchen counters, industrial workshops, science labs, construction sites (all without people).
+*   **Abstract:** Geometric patterns, light refractions, liquid splashes, abstract 3D forms.
+
+---
+**Artistic Direction**
+---
+*   **Target Markets:** Constantly think about what a real client would buy for ads, websites, social media, or presentations in sectors like business, technology, healthcare, e-commerce, and manufacturing.
+*   **Composition:** Rotate your shots. Use flat lays, hero shots (object centered), macro close-ups, environmental context, isolated plain backgrounds, dramatic angles, minimalist compositions with negative space, and repeating patterns.
+*   **Visual Style:** Vary the mood. Mix bright and airy high-key lighting with dramatic low-key scenes. Use warm, inviting tones and cool, clinical color palettes. Alternate between sharp studio lighting and soft, diffused natural light.
+
+---
+**Execution & Output Requirements**
+---
+*   **Handling User Input:** The user will provide an 'idea'. Use this as a general theme or starting point. **Your primary goal is to generate {{{count}}} unique prompts.** If the user's idea is too narrow and will lead to repetition, you MUST branch out to other subjects within your creative scope to ensure variety. Your autonomy is key.
+*   **Anti-Repetition:** This is critical. Each prompt must be significantly different from the one before it. Do not just change a color or a single object. Change the subject, the scene, the composition, AND the lighting.
+*   **Prompt Format:** Each prompt must be a single, clear English sentence. It should include the subject, context, composition type, lighting, visual style, and quality keywords (e.g., "hyper-detailed," "photorealistic 8K," "professional stock photo").
+*   **Output Format:** You must generate a JSON object with a single key "prompts", which contains an array of the generated prompt strings.`;
 
 export default function PromptGeneratorPage() {
   const [idea, setIdea] = useState('');
   const [count, setCount] = useState(10);
+  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const [generatedPrompts, setGeneratedPrompts] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -26,13 +69,17 @@ export default function PromptGeneratorPage() {
       toast({ variant: 'destructive', title: 'Idea is empty', description: 'Please enter an idea for your image.' });
       return;
     }
+     if (!systemPrompt.trim()) {
+      toast({ variant: 'destructive', title: 'Master Prompt is empty', description: 'Please provide a master system prompt.' });
+      return;
+    }
     if (count <= 0) {
       toast({ variant: 'destructive', title: 'Invalid number', description: 'Please enter a number of prompts greater than 0.' });
       return;
     }
     setIsLoading(true);
     setGeneratedPrompts([]);
-    const result = await runGenerateImagePrompt(idea, count);
+    const result = await runGenerateImagePrompt(idea, count, systemPrompt);
     setIsLoading(false);
 
     if (result.error) {
@@ -90,36 +137,58 @@ export default function PromptGeneratorPage() {
           <div className="mx-auto max-w-4xl space-y-8">
             <Card>
               <CardContent className="p-6">
-                <div className="grid w-full gap-4">
-                  <div>
-                    <Label htmlFor="idea-textarea" className="font-medium text-left">
-                      Enter a general theme or concept
-                    </Label>
-                    <Textarea
-                      id="idea-textarea"
-                      placeholder="e.g., 'Modern technology', 'Minimalist office supplies', 'Abstract textures', or just 'Random objects'"
-                      value={idea}
-                      onChange={(e) => setIdea(e.target.value)}
-                      rows={3}
-                      className="mt-2 text-base"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                     <Label htmlFor="prompt-count" className="font-medium text-left">
-                        Number of prompts to generate
-                     </Label>
-                    <Input
-                        id="prompt-count"
-                        type="number"
-                        value={count}
-                        onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
-                        className="mt-2"
-                        min="1"
-                        max="200"
-                        disabled={isLoading}
-                    />
-                  </div>
+                <div className="grid w-full gap-6">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="md:col-span-2 space-y-2">
+                        <Label htmlFor="idea-textarea" className="font-medium text-left">
+                          Enter a general theme or concept
+                        </Label>
+                        <Textarea
+                          id="idea-textarea"
+                          placeholder="e.g., 'Modern office supplies', 'Kitchen objects', or just 'Random objects'"
+                          value={idea}
+                          onChange={(e) => setIdea(e.target.value)}
+                          rows={2}
+                          className="text-base"
+                          disabled={isLoading}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                         <Label htmlFor="prompt-count" className="font-medium text-left">
+                            Number of prompts
+                         </Label>
+                        <Input
+                            id="prompt-count"
+                            type="number"
+                            value={count}
+                            onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
+                            className="text-base"
+                            min="1"
+                            max="200"
+                            disabled={isLoading}
+                        />
+                      </div>
+                   </div>
+
+                    <Accordion type="single" collapsible>
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger>Master Prompt (Advanced)</AccordionTrigger>
+                            <AccordionContent className="space-y-2">
+                                <p className="text-sm text-muted-foreground">
+                                    This is the core instruction set for the AI. You can edit it to change the AI&apos;s behavior, style, and rules.
+                                </p>
+                                <Textarea
+                                    id="system-prompt-textarea"
+                                    value={systemPrompt}
+                                    onChange={(e) => setSystemPrompt(e.target.value)}
+                                    rows={15}
+                                    className="font-code text-xs"
+                                    disabled={isLoading}
+                                />
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                  
                   <Button onClick={handleGenerate} disabled={isLoading} size="lg">
                     <Wand2 className="mr-2 h-5 w-5" />
                     {isLoading ? `Generating ${count} prompts...` : `Generate ${count} Prompts`}

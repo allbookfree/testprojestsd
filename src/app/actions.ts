@@ -31,17 +31,20 @@ export async function runGenerateImageMetadata(
 
 export async function runGenerateImagePrompt(
     idea: string,
-    count: number
+    count: number,
+    systemPrompt: string
 ): Promise<GenerateImagePromptOutput | { error: string }> {
   try {
     if (!idea) {
       return { error: 'Idea is missing.' };
     }
+     if (!systemPrompt) {
+      return { error: 'The master system prompt is missing.' };
+    }
     if (count <= 0) {
         return { error: 'Number of prompts must be greater than zero.' };
     }
-    // The settings aren't needed here for now, but could be added later to select a model
-    const result = await generateImagePrompt({ idea, count });
+    const result = await generateImagePrompt({ idea, count, systemPrompt });
     return result;
   } catch (e) {
     console.error(e);
