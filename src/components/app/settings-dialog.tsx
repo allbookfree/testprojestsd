@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,16 +13,84 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Plus, Trash2, Bot } from 'lucide-react';
+import { Settings, Plus, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useSettings } from '@/hooks/use-settings';
-import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Separator } from '../ui/separator';
+import { testApiKey } from '@/app/actions';
 
-export function SettingsDialog() {
+type TestStatus = 'idle' | 'testing' | 'valid' | 'invalid';
+
+interface ApiKeyItemProps {
+  apiKey: string;
+  onRemove: (key: string) => void;
+}
+
+function ApiKeyItem({ apiKey, onRemove }: ApiKeyItemProps) {
+  const [status, setStatus] = useState<TestStatus>('idle');
+  const [error, setError] = useState('');
+  const { toast } = useToast();
+
+  const handleTest = async () => {
+    setStatus('testing');
+    setError('');
+    const result = await testApiKey(apiKey);
+    if (result.success) {
+      setStatus('valid');
+      toast({ title: 'API Key is valid!', variant: 'default' });
+    } else {
+      setStatus('invalid');
+      setError(result.error);
+      toast({
+        variant: 'destructive',
+        title: 'API Key Test Failed',
+        description: result.error,
+      });
+    }
+  };
+  
+  const maskKey = (key: string) => {
+    if (key.length <= 8) return '****';
+    return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
+  };
+
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'testing':
+        return <Loader2 className="h-4 w-4 animate-spin" />;
+      case 'valid':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'invalid':
+        return <XCircle className="h-4 w-4 text-destructive" />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-secondary/50">
+      <div className='flex items-center gap-2 min-w-0'>
+        {getStatusIcon()}
+        <span className="font-code text-sm truncate" title={apiKey}>{maskKey(apiKey)}</span>
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <Button variant="ghost" size="sm" onClick={handleTest} disabled={status === 'testing'}>
+          {status === 'testing' ? 'Testing...' : 'Test'}
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onRemove(apiKey)}>
+          <Trash2 className="h-4 w-4 text-destructive" />
+          <span className="sr-only">Remove key</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function SettingsDialog({ children }: { children?: React.ReactNode }) {
   const { toast } = useToast();
   const [settings, setSettings] = useSettings();
   const [newKey, setNewKey] = useState('');
+  const [open, setOpen] = useState(false);
 
   const handleAddKey = () => {
     if (newKey.trim() === '') {
@@ -42,36 +111,32 @@ export function SettingsDialog() {
     toast({ title: 'API Key Removed' });
   };
 
-  const maskKey = (key: string) => {
-    if (key.length <= 8) return '****';
-    return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
-  }
-
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Settings className="h-4 w-4" />
-          <span className="sr-only">Settings</span>
-        </Button>
+        {children ? children : (
+          <Button variant="outline" size="icon">
+            <Settings className="h-4 w-4" />
+            <span className="sr-only">Settings</span>
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            Manage your API keys and adjust generation settings.
+            Manage your API keys and adjust generation settings. Changes are saved automatically.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
+        <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
           
-          {/* API Key Management */}
           <div className="space-y-4">
             <h4 className="font-medium leading-none">API Key Management</h4>
             <div className='space-y-2'>
                 <p className="text-sm text-muted-foreground">
-                Add multiple Google AI API keys. The app will automatically rotate them if one reaches its rate limit. Get free keys from{' '}
+                Add multiple Google AI API keys. The app will automatically rotate them if one fails. Get free keys from{' '}
                 <a
-                    href="https://makersuite.google.com/app/apikey"
+                    href="https://aistudio.google.com/app/apikey"
                     target="_blank"
                     rel="noreferrer"
                     className="font-medium text-primary underline-offset-4 hover:underline"
@@ -99,26 +164,19 @@ export function SettingsDialog() {
             <div className="space-y-2">
                 <h4 className="text-sm font-medium">Saved Keys</h4>
                 {settings.apiKeys.length > 0 ? (
-                    <div className="max-h-32 overflow-y-auto space-y-2 rounded-md border p-2">
+                    <div className="max-h-40 overflow-y-auto space-y-1 rounded-md border p-1">
                         {settings.apiKeys.map((key) => (
-                            <div key={key} className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-secondary">
-                                <span className="font-code text-sm truncate">{maskKey(key)}</span>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemoveKey(key)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                    <span className="sr-only">Remove key</span>
-                                </Button>
-                            </div>
+                            <ApiKeyItem key={key} apiKey={key} onRemove={handleRemoveKey} />
                         ))}
                     </div>
                 ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4 border rounded-md">No API keys saved.</p>
+                    <p className="text-sm text-muted-foreground text-center py-4 border rounded-md border-dashed">No API keys saved.</p>
                 )}
             </div>
           </div>
 
           <Separator />
 
-          {/* Generation Settings */}
           <div className="space-y-4">
             <h4 className="font-medium leading-none">Generation Settings</h4>
              <div className="space-y-3">

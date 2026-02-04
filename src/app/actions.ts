@@ -3,6 +3,8 @@
 import { generateImageMetadata, GenerateImageMetadataOutput } from "@/ai/flows/generate-image-metadata";
 import { generateImagePrompt, GenerateImagePromptOutput } from "@/ai/flows/generate-image-prompt";
 import { AppSettings } from "@/hooks/use-settings";
+import { genkit } from "genkit";
+import { googleAI } from "@genkit-ai/google-genai";
 
 // This is the default system prompt that will be used as a fallback.
 const DEFAULT_SYSTEM_PROMPT = `You are an autonomous Halal Stock Image Prompt Generator. Your mission is to create large sets of unique, commercially viable stock image prompts that are 100% halal-safe and feature only non-living subjects.
@@ -94,5 +96,39 @@ export async function runGenerateImagePrompt(
     console.error(e);
     const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
     return { error: `Failed to generate prompt: ${errorMessage}` };
+  }
+}
+
+export async function testApiKey(apiKey: string): Promise<{ success: boolean; error?: string }> {
+  if (!apiKey) {
+    return { success: false, error: 'API key is empty.' };
+  }
+  try {
+    const tempAi = genkit({
+      plugins: [googleAI({ apiKey, maxRetries: 0 })],
+    });
+    // A simple, low-cost operation to verify the key
+    await tempAi.generate({
+        model: 'googleai/gemini-2.5-flash',
+        prompt: 'test',
+        config: {
+            maxOutputTokens: 1,
+        }
+    });
+    return { success: true };
+  } catch (e: any) {
+    let errorMessage = 'An unknown error occurred.';
+    if (e.message) {
+      if (e.message.includes('API key not valid')) {
+        errorMessage = 'The provided API key is not valid. Please check the key and try again.';
+      } else if (e.message.includes('permission denied') || e.message.includes('403')) {
+        errorMessage = 'Permission denied. Ensure the API is enabled for your project.';
+      } else if (e.message.includes('429') || e.message.includes('rate limit')) {
+        errorMessage = 'Rate limit exceeded. The key is likely valid but has run out of free quota.';
+      } else {
+        errorMessage = e.message;
+      }
+    }
+    return { success: false, error: errorMessage };
   }
 }
