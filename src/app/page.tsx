@@ -96,6 +96,16 @@ export default function Home() {
         setFileStates(prevFiles => [...prevFiles, ...newFileStates]);
     };
 
+    const handleRemoveFile = (previewUrlToRemove: string) => {
+        setFileStates(prevStates => {
+            const fileToRevoke = prevStates.find(fs => fs.previewUrl === previewUrlToRemove);
+            if (fileToRevoke) {
+                URL.revokeObjectURL(fileToRevoke.previewUrl);
+            }
+            return prevStates.filter(fs => fs.previewUrl !== previewUrlToRemove);
+        });
+    };
+
     const handleClear = () => {
         fileStates.forEach(fs => URL.revokeObjectURL(fs.previewUrl));
         setFileStates([]);
@@ -201,12 +211,13 @@ export default function Home() {
                         <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                             {fileStates.map((fs) => (
                                 <ImageCard
-                                    key={`${fs.file.name}-${fs.previewUrl}`}
+                                    key={fs.previewUrl}
                                     file={fs.file}
                                     previewUrl={fs.previewUrl}
                                     status={fs.status}
                                     metadata={fs.metadata}
                                     error={fs.error}
+                                    onRemove={handleRemoveFile}
                                 />
                             ))}
                         </div>

@@ -6,7 +6,8 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { MetadataDisplay } from './metadata-display';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertTriangle, Sparkles, Loader2, Hourglass } from 'lucide-react';
+import { AlertTriangle, Sparkles, Loader2, Hourglass, X } from 'lucide-react';
+import { Button } from '../ui/button';
 
 type FileStatus = 'queued' | 'processing' | 'success' | 'error';
 
@@ -16,9 +17,10 @@ interface ImageCardProps {
   status: FileStatus;
   metadata?: GenerateImageMetadataOutput;
   error?: string;
+  onRemove: (previewUrl: string) => void;
 }
 
-export function ImageCard({ file, previewUrl, status, metadata, error }: ImageCardProps) {
+export function ImageCard({ file, previewUrl, status, metadata, error, onRemove }: ImageCardProps) {
   const renderContent = () => {
     switch (status) {
       case 'queued':
@@ -96,12 +98,21 @@ export function ImageCard({ file, previewUrl, status, metadata, error }: ImageCa
   }
 
   return (
-    <Card className="overflow-hidden flex flex-col transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
+    <Card className="overflow-hidden flex flex-col transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 group/card">
       <div className="relative aspect-video">
         {previewUrl && (
           <Image src={previewUrl} alt={file.name} fill className="object-cover" />
         )}
         {renderOverlay()}
+        <Button 
+            variant="destructive" 
+            size="icon" 
+            className="absolute top-2 left-2 h-7 w-7 opacity-0 group-hover/card:opacity-100 transition-opacity z-10"
+            onClick={() => onRemove(previewUrl)}
+            title="Remove image"
+        >
+            <X className="h-4 w-4" />
+        </Button>
       </div>
       
       <div className="flex-1 flex flex-col justify-between">

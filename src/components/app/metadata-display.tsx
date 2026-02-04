@@ -6,32 +6,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "../ui/separator";
-import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
-
-// Helper for the 'Copy' button with a toast notification
-function CopyableField({ label, textToCopy, children, className }: { label:string, textToCopy: string, children: React.ReactNode, className?: string }) {
-  const { toast } = useToast();
-
-  const onCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(textToCopy);
-    toast({
-      title: 'Copied to clipboard!',
-      description: `${label} has been copied.`,
-    });
-  };
-  
-  return (
-    <div className={cn("group relative", className)}>
-      {children}
-      <Button variant="ghost" size="icon" onClick={onCopy} className="absolute top-0 right-0 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100">
-        <Copy className="h-3.5 w-3.5" />
-        <span className="sr-only">Copy {label}</span>
-      </Button>
-    </div>
-  )
-}
 
 // Helper for the 'View All' dialog
 function ViewDetailsDialog({ title, content, copyText }: { title: string, content: React.ReactNode, copyText: string }) {
@@ -91,11 +66,15 @@ export function MetadataDisplay({ metadata }: MetadataDisplayProps) {
 
   return (
     <div className="p-4 space-y-4 h-full flex flex-col">
-      <CopyableField label="Title" textToCopy={metadata.title}>
-        <h3 className="font-semibold pr-8 text-base leading-tight line-clamp-2" title={metadata.title}>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Title</p>
+            <ViewDetailsDialog title="Full Title" content={metadata.title} copyText={metadata.title} />
+        </div>
+        <p className="text-sm font-semibold text-foreground/90 line-clamp-2" title={metadata.title}>
           {metadata.title}
-        </h3>
-      </CopyableField>
+        </p>
+      </div>
       
       <div className="flex items-center justify-between" title={`Rating: ${metadata.rating} out of 5`}>
         <p className="text-sm font-medium text-muted-foreground">Rating</p>
