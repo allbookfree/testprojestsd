@@ -2,12 +2,16 @@
 
 import { generateImageMetadata, GenerateImageMetadataOutput } from "@/ai/flows/generate-image-metadata";
 
-export async function runGenerateImageMetadata(imageUri: string): Promise<GenerateImageMetadataOutput | { error: string }> {
+export async function runGenerateImageMetadata(
+    imageUri: string,
+    apiKeys: string[]
+): Promise<GenerateImageMetadataOutput | { error: string }> {
   try {
     if (!imageUri) {
       return { error: 'Image data is missing.' };
     }
-    const metadata = await generateImageMetadata({ imageUri });
+    // Pass keys to the flow
+    const metadata = await generateImageMetadata({ imageUri, apiKeys });
     return metadata;
   } catch (e) {
     console.error(e);

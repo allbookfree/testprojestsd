@@ -26,6 +26,8 @@ function fileToDataURL(file: File): Promise<string> {
   });
 }
 
+const API_KEYS_STORAGE_KEY = 'gemini_api_keys';
+
 export function ImageCard({ file }: ImageCardProps) {
   const [status, setStatus] = useState<Status>('idle');
   const [metadata, setMetadata] = useState<GenerateImageMetadataOutput | null>(null);
@@ -46,8 +48,11 @@ export function ImageCard({ file }: ImageCardProps) {
       }, 300);
 
       try {
+        const storedKeys = localStorage.getItem(API_KEYS_STORAGE_KEY);
+        const apiKeys = storedKeys ? JSON.parse(storedKeys) : [];
+        
         const dataUrl = await fileToDataURL(file);
-        const result = await runGenerateImageMetadata(dataUrl);
+        const result = await runGenerateImageMetadata(dataUrl, apiKeys);
 
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
