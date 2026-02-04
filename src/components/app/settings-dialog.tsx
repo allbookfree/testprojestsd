@@ -13,13 +13,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Plus, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Settings, Plus, Trash2, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useSettings } from '@/hooks/use-settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Separator } from '../ui/separator';
-import { testApiKey } from '@/app/actions';
+import { testApiKey, ApiKeyTestResult } from '@/app/actions';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
-type TestStatus = 'idle' | 'testing' | 'valid' | 'invalid';
+type TestStatus = ApiKeyTestResult['status'] | 'idle' | 'testing';
 
 interface ApiKeyItemProps {
   apiKey: string;
@@ -35,12 +36,12 @@ function ApiKeyItem({ apiKey, onRemove }: ApiKeyItemProps) {
     setStatus('testing');
     setError('');
     const result = await testApiKey(apiKey);
+    setStatus(result.status);
+
     if (result.success) {
-      setStatus('valid');
-      toast({ title: 'API Key is valid!', variant: 'default' });
+      toast({ title: 'API Key is valid!', description: 'This key is ready to use.', variant: 'default' });
     } else {
-      setStatus('invalid');
-      setError(result.error);
+      setError(result.error || 'An unknown error occurred.');
       toast({
         variant: 'destructive',
         title: 'API Key Test Failed',
@@ -57,32 +58,49 @@ function ApiKeyItem({ apiKey, onRemove }: ApiKeyItemProps) {
   const getStatusIcon = () => {
     switch (status) {
       case 'testing':
-        return <Loader2 className="h-4 w-4 animate-spin" />;
+        return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
       case 'valid':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'invalid':
         return <XCircle className="h-4 w-4 text-destructive" />;
+      case 'rate-limited':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
       default:
-        return null;
+        // idle
+        return <div className="h-4 w-4" />;
     }
   };
+  
+  const getStatusTooltip = () => {
+      if (status === 'invalid' && error) return error;
+      if (status === 'rate-limited' && error) return error;
+      if (status === 'valid') return 'This API key is valid and working.';
+      return 'Test this API key to check its status.';
+  }
 
   return (
-    <div className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-secondary/50">
-      <div className='flex items-center gap-2 min-w-0'>
-        {getStatusIcon()}
-        <span className="font-mono text-sm truncate" title={apiKey}>{maskKey(apiKey)}</span>
-      </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <Button variant="ghost" size="sm" onClick={handleTest} disabled={status === 'testing'}>
-          {status === 'testing' ? 'Testing...' : 'Test'}
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onRemove(apiKey)}>
-          <Trash2 className="h-4 w-4 text-destructive" />
-          <span className="sr-only">Remove key</span>
-        </Button>
-      </div>
-    </div>
+    <Tooltip>
+        <TooltipTrigger asChild>
+            <div className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-secondary/50">
+              <div className='flex items-center gap-2 min-w-0'>
+                {getStatusIcon()}
+                <span className="font-mono text-sm truncate" title={apiKey}>{maskKey(apiKey)}</span>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button variant="ghost" size="sm" onClick={handleTest} disabled={status === 'testing'}>
+                  {status === 'testing' ? 'Testing...' : 'Test'}
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onRemove(apiKey)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <span className="sr-only">Remove key</span>
+                </Button>
+              </div>
+            </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" align="start">
+          <p>{getStatusTooltip()}</p>
+        </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -128,108 +146,108 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
             Manage your API keys and adjust generation settings. Changes are saved automatically.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
-          
-          <div className="space-y-4">
-            <h4 className="font-medium leading-none">API Key Management</h4>
-            <div className='space-y-2'>
-                <p className="text-sm text-muted-foreground">
-                Add multiple Google AI API keys. The app will automatically rotate them if one fails. Get free keys from{' '}
-                <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                    Google AI Studio
-                </a>.
-                </p>
-            </div>
-            <div className="space-y-3">
-                <Label htmlFor="new-api-key">New API Key</Label>
-                <div className="flex items-center space-x-2">
-                    <Input
-                        id="new-api-key"
-                        value={newKey}
-                        onChange={(e) => setNewKey(e.target.value)}
-                        placeholder="Enter new Google AI API key"
-                        className="font-mono"
-                    />
-                    <Button type="button" size="icon" onClick={handleAddKey}>
-                        <Plus className="h-4 w-4" />
-                        <span className="sr-only">Add Key</span>
-                    </Button>
+        <TooltipProvider>
+            <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
+            
+            <div className="space-y-4">
+                <h4 className="font-medium leading-none">API Key Management</h4>
+                <div className='space-y-2'>
+                    <p className="text-sm text-muted-foreground">
+                    Add multiple Google AI API keys. The app will use them sequentially if one runs out of quota. Get free keys from{' '}
+                    <a
+                        href="https://aistudio.google.com/app/apikey"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                        Google AI Studio
+                    </a>.
+                    </p>
                 </div>
-            </div>
-            <div className="space-y-2">
-                <h4 className="text-sm font-medium">Saved Keys</h4>
-                {settings.apiKeys.length > 0 ? (
-                    <div className="max-h-40 overflow-y-auto space-y-1 rounded-md border p-1">
-                        {settings.apiKeys.map((key) => (
-                            <ApiKeyItem key={key} apiKey={key} onRemove={handleRemoveKey} />
-                        ))}
+                <div className="space-y-3">
+                    <Label htmlFor="new-api-key">New API Key</Label>
+                    <div className="flex items-center space-x-2">
+                        <Input
+                            id="new-api-key"
+                            value={newKey}
+                            onChange={(e) => setNewKey(e.target.value)}
+                            placeholder="Enter new Google AI API key"
+                            className="font-mono"
+                        />
+                        <Button type="button" size="icon" onClick={handleAddKey}>
+                            <Plus className="h-4 w-4" />
+                            <span className="sr-only">Add Key</span>
+                        </Button>
                     </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4 border rounded-md border-dashed">No API keys saved.</p>
-                )}
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h4 className="font-medium leading-none">Generation Settings</h4>
-             <div className="space-y-3">
-                <Label htmlFor="model-select">AI Model</Label>
-                 <Select
-                    value={settings.model}
-                    onValueChange={(value) => setSettings(prev => ({...prev, model: value}))}
-                 >
-                    <SelectTrigger id="model-select" className="w-full">
-                        <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="googleai/gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</SelectItem>
-                        <SelectItem value="googleai/gemini-1.5-flash-latest">Gemini 1.5 Flash</SelectItem>
-                    </SelectContent>
-                </Select>
-             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                </div>
                 <div className="space-y-2">
-                    <Label htmlFor="title-length">Title Words</Label>
-                    <Input
-                        id="title-length"
-                        type="number"
-                        value={settings.titleLength}
-                        onChange={(e) => setSettings(prev => ({...prev, titleLength: parseInt(e.target.value, 10) || 0}))}
-                        placeholder="e.g., 15"
-                    />
+                    <h4 className="text-sm font-medium">Saved Keys</h4>
+                    {settings.apiKeys.length > 0 ? (
+                        <div className="max-h-40 overflow-y-auto space-y-1 rounded-md border p-1">
+                            {settings.apiKeys.map((key) => (
+                                <ApiKeyItem key={key} apiKey={key} onRemove={handleRemoveKey} />
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4 border rounded-md border-dashed">No API keys saved.</p>
+                    )}
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="desc-length">Description Words</Label>
-                    <Input
-                        id="desc-length"
-                        type="number"
-                        value={settings.descriptionLength}
-                        onChange={(e) => setSettings(prev => ({...prev, descriptionLength: parseInt(e.target.value, 10) || 0}))}
-                        placeholder="e.g., 100"
-                    />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="keyword-count">Keyword Count</Label>
-                    <Input
-                        id="keyword-count"
-                        type="number"
-                        value={settings.keywordCount}
-                        onChange={(e) => setSettings(prev => ({...prev, keywordCount: parseInt(e.target.value, 10) || 0}))}
-                        placeholder="e.g., 25"
-                    />
-                </div>
-             </div>
-          </div>
+            </div>
 
+            <Separator />
 
-        </div>
+            <div className="space-y-4">
+                <h4 className="font-medium leading-none">Generation Settings</h4>
+                <div className="space-y-3">
+                    <Label htmlFor="model-select">AI Model</Label>
+                    <Select
+                        value={settings.model}
+                        onValueChange={(value) => setSettings(prev => ({...prev, model: value}))}
+                    >
+                        <SelectTrigger id="model-select" className="w-full">
+                            <SelectValue placeholder="Select a model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="googleai/gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</SelectItem>
+                            <SelectItem value="googleai/gemini-1.5-flash-latest">Gemini 1.5 Flash</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="title-length">Title Words</Label>
+                        <Input
+                            id="title-length"
+                            type="number"
+                            value={settings.titleLength}
+                            onChange={(e) => setSettings(prev => ({...prev, titleLength: parseInt(e.target.value, 10) || 0}))}
+                            placeholder="e.g., 15"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="desc-length">Description Words</Label>
+                        <Input
+                            id="desc-length"
+                            type="number"
+                            value={settings.descriptionLength}
+                            onChange={(e) => setSettings(prev => ({...prev, descriptionLength: parseInt(e.target.value, 10) || 0}))}
+                            placeholder="e.g., 100"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="keyword-count">Keyword Count</Label>
+                        <Input
+                            id="keyword-count"
+                            type="number"
+                            value={settings.keywordCount}
+                            onChange={(e) => setSettings(prev => ({...prev, keywordCount: parseInt(e.target.value, 10) || 0}))}
+                            placeholder="e.g., 25"
+                        />
+                    </div>
+                </div>
+            </div>
+            </div>
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   );

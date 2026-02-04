@@ -69,8 +69,21 @@ export async function runGenerateImageMetadata(
     return metadata;
   } catch (e) {
     console.error(e);
-    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-    return { error: `Failed to generate metadata: ${errorMessage}` };
+    let errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    // Simplify common errors for the user
+    if (errorMessage.toLowerCase().includes('all api keys failed')) {
+        if (errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('rate limit')) {
+            errorMessage = 'All available API keys have exceeded their usage quota. Please add a new key in settings or wait for the quota to reset.';
+        } else if (errorMessage.toLowerCase().includes('api key not valid')) {
+            errorMessage = 'None of the provided API keys are valid. Please add a valid key in settings.';
+        } else {
+            errorMessage = 'Processing failed after trying all API keys. Please check your keys and network connection.';
+        }
+    } else if (errorMessage.toLowerCase().includes('no google ai api key provided')) {
+        errorMessage = 'No API key found. Please add a Google AI API key in the settings panel.';
+    }
+
+    return { error: errorMessage };
   }
 }
 
@@ -99,9 +112,15 @@ export async function runGenerateImagePrompt(
   }
 }
 
-export async function testApiKey(apiKey: string): Promise<{ success: boolean; error?: string }> {
+export type ApiKeyTestResult = {
+    success: boolean;
+    status: 'valid' | 'invalid' | 'rate-limited';
+    error?: string;
+};
+
+export async function testApiKey(apiKey: string): Promise<ApiKeyTestResult> {
   if (!apiKey) {
-    return { success: false, error: 'API key is empty.' };
+    return { success: false, status: 'invalid', error: 'API key is empty.' };
   }
   try {
     const tempAi = genkit({
@@ -115,20 +134,32 @@ export async function testApiKey(apiKey: string): Promise<{ success: boolean; er
             maxOutputTokens: 1,
         }
     });
-    return { success: true };
+    return { success: true, status: 'valid' };
   } catch (e: any) {
     let errorMessage = 'An unknown error occurred.';
+    let status: 'invalid' | 'rate-limited' = 'invalid';
+    
     if (e.message) {
-      if (e.message.includes('API key not valid')) {
+      const lowerCaseMessage = e.message.toLowerCase();
+      if (lowerCaseMessage.includes('api key not valid')) {
         errorMessage = 'The provided API key is not valid. Please check the key and try again.';
-      } else if (e.message.includes('permission denied') || e.message.includes('403')) {
-        errorMessage = 'Permission denied. Ensure the API is enabled for your project.';
-      } else if (e.message.includes('429') || e.message.includes('rate limit')) {
-        errorMessage = 'Rate limit exceeded. The key is likely valid but has run out of free quota.';
+        status = 'invalid';
+      } else if (lowerCaseMessage.includes('permission denied') || lowerCaseMessage.includes('403')) {
+        errorMessage = 'Permission denied. Make sure the Gemini API is enabled for your project.';
+        status = 'invalid';
+      } else if (lowerCaseMessage.includes('429') || lowerCaseMessage.includes('rate limit') || lowerCaseMessage.includes('quota')) {
+        status = 'rate-limited';
+        const retryMatch = e.message.match(/Please retry in ([\d.]+)s/);
+        if (retryMatch && retryMatch[1]) {
+            const retrySeconds = Math.ceil(parseFloat(retryMatch[1]));
+            errorMessage = `Rate limit exceeded. Please try this key again in about ${retrySeconds} seconds.`;
+        } else {
+            errorMessage = 'Rate limit exceeded. The key is valid but has run out of its free quota. Please try again later.';
+        }
       } else {
         errorMessage = e.message;
       }
     }
-    return { success: false, error: errorMessage };
+    return { success: false, status, error: errorMessage };
   }
 }
