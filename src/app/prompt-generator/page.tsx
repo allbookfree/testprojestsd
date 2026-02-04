@@ -145,7 +145,7 @@ export default function PromptGeneratorPage() {
                         </Label>
                         <Textarea
                           id="idea-textarea"
-                          placeholder="e.g., 'Modern office supplies', 'Kitchen objects', or just 'Random objects'"
+                          placeholder="e.g., 'random objects', 'modern tech', 'kitchen scenes', 'abstract textures'"
                           value={idea}
                           onChange={(e) => setIdea(e.target.value)}
                           rows={2}
