@@ -19,6 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Separator } from '../ui/separator';
 import { testApiKey, ApiKeyTestResult } from '@/app/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Switch } from '../ui/switch';
+import { cn } from '@/lib/utils';
 
 type TestStatus = ApiKeyTestResult['status'] | 'idle' | 'testing';
 
@@ -213,35 +215,55 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
                         </SelectContent>
                     </Select>
                 </div>
+
+                <div className="space-y-3 rounded-lg border bg-background/50 p-4">
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="auto-metadata" className="font-semibold">
+                            Automatic Mode
+                        </Label>
+                        <Switch
+                            id="auto-metadata"
+                            checked={settings.useAutoMetadata}
+                            onCheckedChange={(checked) => setSettings(prev => ({...prev, useAutoMetadata: checked}))}
+                        />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        When enabled, the AI will decide the best title length, description length, and keyword count for each image based on its content.
+                    </p>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="title-length">Title Words</Label>
+                        <Label htmlFor="title-length" className={cn(settings.useAutoMetadata && "text-muted-foreground/70")}>Title Words</Label>
                         <Input
                             id="title-length"
                             type="number"
                             value={settings.titleLength}
                             onChange={(e) => setSettings(prev => ({...prev, titleLength: parseInt(e.target.value, 10) || 0}))}
                             placeholder="e.g., 15"
+                            disabled={settings.useAutoMetadata}
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="desc-length">Description Words</Label>
+                        <Label htmlFor="desc-length" className={cn(settings.useAutoMetadata && "text-muted-foreground/70")}>Description Words</Label>
                         <Input
                             id="desc-length"
                             type="number"
                             value={settings.descriptionLength}
                             onChange={(e) => setSettings(prev => ({...prev, descriptionLength: parseInt(e.target.value, 10) || 0}))}
                             placeholder="e.g., 100"
+                            disabled={settings.useAutoMetadata}
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="keyword-count">Keyword Count</Label>
+                        <Label htmlFor="keyword-count" className={cn(settings.useAutoMetadata && "text-muted-foreground/70")}>Keyword Count</Label>
                         <Input
                             id="keyword-count"
                             type="number"
                             value={settings.keywordCount}
                             onChange={(e) => setSettings(prev => ({...prev, keywordCount: parseInt(e.target.value, 10) || 0}))}
                             placeholder="e.g., 25"
+                            disabled={settings.useAutoMetadata}
                         />
                     </div>
                 </div>

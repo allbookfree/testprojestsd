@@ -19,6 +19,7 @@ const GenerateImageMetadataInputSchema = z.object({
     ),
   apiKeys: z.array(z.string()).describe('An array of Google AI API keys to try.'),
   model: z.string().optional().describe('The AI model to use for generation.'),
+  useAutoMetadata: z.boolean().optional().describe('Whether the AI should decide lengths.'),
   titleLength: z.number().optional().describe('The maximum number of words for the title.'),
   descriptionLength: z.number().optional().describe('The maximum number of words for the description.'),
   keywordCount: z.number().optional().describe('The desired number of keywords.'),
@@ -33,14 +34,18 @@ const GenerateImageMetadataOutputSchema = z.object({
 });
 export type GenerateImageMetadataOutput = z.infer<typeof GenerateImageMetadataOutputSchema>;
 
-// This is the prompt definition that will be used to create temporary prompts.
-const promptDefinition = {
-  name: 'generateImageMetadataPrompt_dynamic',
-  input: { schema: GenerateImageMetadataInputSchema.omit({ apiKeys: true, model: true }) },
-  output: { schema: GenerateImageMetadataOutputSchema },
-  prompt: `Analyze this image for stock photo SEO and generate the following metadata:\n\n*   Title (approx. {{titleLength}} words, SEO-friendly)\n*   Description (approx. {{descriptionLength}} words, with colors/objects/mood)\n*   {{keywordCount}} keywords (comma-separated, long-tail)\n*   Rating (1-5 with reason)\n\nOutput in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}\n\nImage: {{media url=imageUri}}`,
-};
+const autoPromptText = `Analyze this image for stock photo SEO and generate the following metadata. For title, description, and keywords, use your expert judgment to decide the optimal length and quantity for maximum marketability based on the image's content. Do not make them too short or too long.
 
+*   Title (SEO-friendly)
+*   Description (with colors/objects/mood)
+*   Keywords (comma-separated, long-tail)
+*   Rating (1-5 with reason)
+
+Output in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
+
+Image: {{media url=imageUri}}`;
+
+const manualPromptText = `Analyze this image for stock photo SEO and generate the following metadata:\n\n*   Title (approx. {{titleLength}} words, SEO-friendly)\n*   Description (approx. {{descriptionLength}} words, with colors/objects/mood)\n*   {{keywordCount}} keywords (comma-separated, long-tail)\n*   Rating (1-5 with reason)\n\nOutput in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}\n\nImage: {{media url=imageUri}}`;
 
 export async function generateImageMetadata(input: GenerateImageMetadataInput): Promise<GenerateImageMetadataOutput> {
   // Use keys from input, but also have a fallback to the environment variable for existing setups.
@@ -57,6 +62,7 @@ export async function generateImageMetadata(input: GenerateImageMetadataInput): 
 
   let lastError: any = null;
   const modelToUse = input.model || 'googleai/gemini-2.5-flash';
+  const promptText = input.useAutoMetadata ? autoPromptText : manualPromptText;
 
   for (const key of keysToTry) {
     if (!key) continue;
@@ -67,7 +73,10 @@ export async function generateImageMetadata(input: GenerateImageMetadataInput): 
       });
 
       const tempPrompt = tempAi.definePrompt({
-        ...promptDefinition,
+        name: 'generateImageMetadataPrompt_dynamic',
+        input: { schema: GenerateImageMetadataInputSchema.omit({ apiKeys: true, model: true }) },
+        output: { schema: GenerateImageMetadataOutputSchema },
+        prompt: promptText,
         model: modelToUse
       });
       
@@ -79,10 +88,7 @@ export async function generateImageMetadata(input: GenerateImageMetadataInput): 
       } = input;
 
       const { output } = await tempPrompt({
-        imageUri,
-        titleLength,
-        descriptionLength,
-        keywordCount
+        ...input
       });
 
       if (output) {

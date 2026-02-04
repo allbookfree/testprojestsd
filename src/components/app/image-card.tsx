@@ -14,6 +14,7 @@ import { useSettings } from '@/hooks/use-settings';
 
 interface ImageCardProps {
   file: File;
+  onMetadataGenerated: (fileName: string, metadata: GenerateImageMetadataOutput) => void;
 }
 
 type Status = 'idle' | 'processing' | 'success' | 'error';
@@ -27,7 +28,7 @@ function fileToDataURL(file: File): Promise<string> {
   });
 }
 
-export function ImageCard({ file }: ImageCardProps) {
+export function ImageCard({ file, onMetadataGenerated }: ImageCardProps) {
   const [status, setStatus] = useState<Status>('idle');
   const [metadata, setMetadata] = useState<GenerateImageMetadataOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +63,7 @@ export function ImageCard({ file }: ImageCardProps) {
 
         setMetadata(result);
         setStatus('success');
+        onMetadataGenerated(file.name, result);
       } catch (e) {
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
@@ -79,7 +81,7 @@ export function ImageCard({ file }: ImageCardProps) {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [file, settings]);
+  }, [file, settings, onMetadataGenerated]);
 
   const renderContent = () => {
     switch (status) {

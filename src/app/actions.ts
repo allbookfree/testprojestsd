@@ -62,6 +62,7 @@ export async function runGenerateImageMetadata(
         imageUri, 
         apiKeys: settings.apiKeys,
         model: settings.model,
+        useAutoMetadata: settings.useAutoMetadata,
         titleLength: settings.titleLength,
         descriptionLength: settings.descriptionLength,
         keywordCount: settings.keywordCount
