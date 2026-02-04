@@ -175,7 +175,7 @@ export default function PromptGeneratorPage() {
                             <AccordionTrigger>Master Prompt (Advanced)</AccordionTrigger>
                             <AccordionContent className="space-y-2">
                                 <p className="text-sm text-muted-foreground">
-                                    This is the core instruction set for the AI. You can edit it to change the AI&apos;s behavior, style, and rules.
+                                    This is the core instruction set for the AI. You can edit it to change the AI&apos;s behavior, style, and rules. The AI is designed to prevent repetition, but you can tweak this prompt to ensure maximum long-term uniqueness.
                                 </p>
                                 <Textarea
                                     id="system-prompt-textarea"
@@ -228,6 +228,7 @@ export default function PromptGeneratorPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[50px]">#</TableHead>
+
                                     <TableHead>Prompt</TableHead>
                                     <TableHead className="text-right w-[60px]">Copy</TableHead>
                                 </TableRow>
