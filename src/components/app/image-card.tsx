@@ -41,21 +41,15 @@ export function ImageCard({ file }: ImageCardProps) {
     const processImage = async () => {
       setStatus('processing');
       
-      try {
-        progressInterval = setInterval(() => {
-          setProgress(prev => {
-            if (prev >= 95) {
-              if (progressInterval) clearInterval(progressInterval);
-              return 95;
-            }
-            return prev + 5;
-          });
-        }, 300);
+      progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 5, 95));
+      }, 300);
 
+      try {
         const dataUrl = await fileToDataURL(file);
         const result = await runGenerateImageMetadata(dataUrl);
 
-        if (progressInterval) clearInterval(progressInterval);
+        clearInterval(progressInterval);
         setProgress(100);
 
         if ('error' in result) {
@@ -65,7 +59,7 @@ export function ImageCard({ file }: ImageCardProps) {
         setMetadata(result);
         setStatus('success');
       } catch (e) {
-        if (progressInterval) clearInterval(progressInterval);
+        clearInterval(progressInterval);
         setError(e instanceof Error ? e.message : 'An unknown error occurred');
         setStatus('error');
       }
@@ -75,7 +69,7 @@ export function ImageCard({ file }: ImageCardProps) {
 
     return () => {
       URL.revokeObjectURL(objectUrl);
-      if (progressInterval) clearInterval(progressInterval);
+      clearInterval(progressInterval);
     };
   }, [file]);
 
