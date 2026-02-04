@@ -4,6 +4,7 @@ import { useRef, useState, type DragEvent } from 'react';
 import { UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface ImageUploaderProps {
   onFilesAdded: (files: File[]) => void;
@@ -15,7 +16,7 @@ export function ImageUploader({ onFilesAdded }: ImageUploaderProps) {
   const { toast } = useToast();
 
   const handleFileSelect = (selectedFiles: FileList | null) => {
-    if (selectedFiles) {
+    if (selectedFiles && selectedFiles.length > 0) {
       const imageFiles = Array.from(selectedFiles).filter(file =>
         file.type.startsWith('image/')
       );
@@ -25,7 +26,7 @@ export function ImageUploader({ onFilesAdded }: ImageUploaderProps) {
         toast({
           variant: 'destructive',
           title: 'Invalid File Type',
-          description: 'Please upload only image files (e.g., JPG, PNG).',
+          description: 'Please upload only image files (e.g., JPG, PNG, WEBP).',
         });
       }
     }
@@ -58,25 +59,28 @@ export function ImageUploader({ onFilesAdded }: ImageUploaderProps) {
   return (
     <div
       className={cn(
-        'relative flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-card p-12 text-center transition-all duration-300',
-        isDragging && 'border-primary bg-secondary'
+        'relative flex w-full flex-col items-center justify-center rounded-xl border border-border bg-card p-12 text-center transition-all duration-300 shadow-sm',
+        isDragging && 'border-primary ring-2 ring-primary ring-offset-2 bg-secondary'
       )}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <UploadCloud className={cn('h-12 w-12 text-muted-foreground transition-transform', isDragging && 'scale-110 text-primary')} />
-      <h3 className="mt-4 text-xl font-semibold">Drag & drop images here</h3>
-      <p className="mt-1 text-muted-foreground">or</p>
-      <button
+      <div className={cn('flex items-center justify-center h-16 w-16 rounded-full bg-secondary text-primary mb-4 transition-colors', isDragging && 'bg-primary/20')}>
+        <UploadCloud className={cn('h-8 w-8 text-primary transition-transform', isDragging && 'scale-110')} />
+      </div>
+      <h3 className="mt-2 text-2xl font-semibold">Click to upload or drag & drop</h3>
+      <p className="mt-2 text-sm text-muted-foreground">Supports JPG, PNG, WEBP, and more.</p>
+       <Button
+        variant="link"
+        size="sm"
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="mt-2 font-semibold text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm"
+        className="mt-2"
       >
-        Click to browse
-      </button>
-      <p className="mt-2 text-xs text-muted-foreground">Supports: JPG, PNG, WEBP, etc.</p>
+        Browse files
+      </Button>
       <input
         ref={fileInputRef}
         type="file"
