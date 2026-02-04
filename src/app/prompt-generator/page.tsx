@@ -69,10 +69,6 @@ export default function PromptGeneratorPage() {
       toast({ variant: 'destructive', title: 'Idea is empty', description: 'Please enter an idea for your image.' });
       return;
     }
-     if (!systemPrompt.trim()) {
-      toast({ variant: 'destructive', title: 'Master Prompt is empty', description: 'Please provide a master system prompt.' });
-      return;
-    }
     if (count <= 0) {
       toast({ variant: 'destructive', title: 'Invalid number', description: 'Please enter a number of prompts greater than 0.' });
       return;
@@ -145,7 +141,7 @@ export default function PromptGeneratorPage() {
                         </Label>
                         <Textarea
                           id="idea-textarea"
-                          placeholder="e.g., 'random objects', 'modern tech', 'kitchen scenes', 'abstract textures'"
+                          placeholder="e.g., 'random kitchen objects', 'modern tech', 'abstract textures'"
                           value={idea}
                           onChange={(e) => setIdea(e.target.value)}
                           rows={2}
