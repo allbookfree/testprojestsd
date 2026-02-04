@@ -36,10 +36,10 @@ export function ImageCard({ file }: ImageCardProps) {
   useEffect(() => {
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
+    let progressInterval: NodeJS.Timeout | undefined;
 
     const processImage = async () => {
       setStatus('processing');
-      let progressInterval: NodeJS.Timeout | undefined;
       
       try {
         progressInterval = setInterval(() => {
