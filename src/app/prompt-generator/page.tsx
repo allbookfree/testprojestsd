@@ -93,11 +93,11 @@ export default function PromptGeneratorPage() {
                 <div className="grid w-full gap-4">
                   <div>
                     <Label htmlFor="idea-textarea" className="font-medium text-left">
-                      Enter your image idea
+                      Enter a general theme or concept
                     </Label>
                     <Textarea
                       id="idea-textarea"
-                      placeholder="e.g., 'A serene mosque at sunset', 'Abstract Islamic geometric patterns', 'A person reading Quran from behind'"
+                      placeholder="e.g., 'Modern technology', 'Minimalist office supplies', 'Abstract textures', or just 'Random objects'"
                       value={idea}
                       onChange={(e) => setIdea(e.target.value)}
                       rows={3}
