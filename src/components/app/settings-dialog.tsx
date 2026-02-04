@@ -71,7 +71,7 @@ function ApiKeyItem({ apiKey, onRemove }: ApiKeyItemProps) {
     <div className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-secondary/50">
       <div className='flex items-center gap-2 min-w-0'>
         {getStatusIcon()}
-        <span className="font-code text-sm truncate" title={apiKey}>{maskKey(apiKey)}</span>
+        <span className="font-mono text-sm truncate" title={apiKey}>{maskKey(apiKey)}</span>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         <Button variant="ghost" size="sm" onClick={handleTest} disabled={status === 'testing'}>
@@ -153,7 +153,7 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
                         value={newKey}
                         onChange={(e) => setNewKey(e.target.value)}
                         placeholder="Enter new Google AI API key"
-                        className="font-code"
+                        className="font-mono"
                     />
                     <Button type="button" size="icon" onClick={handleAddKey}>
                         <Plus className="h-4 w-4" />

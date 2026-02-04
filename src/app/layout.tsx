@@ -1,7 +1,21 @@
 import type {Metadata} from 'next';
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Header } from '@/components/app/header';
+import { cn } from '@/lib/utils';
+
+const fontSans = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+})
+
+const fontMono = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-mono',
+})
 
 export const metadata: Metadata = {
   title: 'ImageMeta Pro | AI-Powered SEO & Prompting',
@@ -14,17 +28,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head />
+      <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable, fontMono.variable)}>
         <Header />
-        <main>{children}</main>
+        <main className="container mx-auto px-4 md:px-8">{children}</main>
         <Toaster />
       </body>
     </html>

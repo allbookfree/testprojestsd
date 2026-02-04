@@ -123,123 +123,121 @@ export default function PromptGeneratorPage() {
         </PageHeaderDescription>
       </PageHeader>
       
-      <div className="container mx-auto px-4 md:px-8 pb-24">
-        <div className="mx-auto max-w-4xl space-y-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="grid w-full gap-6">
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="idea-textarea">
-                        1. Enter a general theme or concept
-                      </Label>
-                      <Textarea
-                        id="idea-textarea"
-                        placeholder="e.g., 'random kitchen objects', 'modern tech', 'abstract textures'"
-                        value={idea}
-                        onChange={(e) => setIdea(e.target.value)}
-                        rows={2}
+      <div className="mx-auto max-w-4xl space-y-8 pb-24">
+        <Card>
+          <CardContent className="p-6">
+            <div className="grid w-full gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div className="md:col-span-2 space-y-2">
+                    <Label htmlFor="idea-textarea">
+                      1. Enter a general theme or concept
+                    </Label>
+                    <Textarea
+                      id="idea-textarea"
+                      placeholder="e.g., 'random kitchen objects', 'modern tech', 'abstract textures'"
+                      value={idea}
+                      onChange={(e) => setIdea(e.target.value)}
+                      rows={2}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                     <Label htmlFor="prompt-count">
+                        2. Number of prompts
+                     </Label>
+                    <Input
+                        id="prompt-count"
+                        type="number"
+                        value={count}
+                        onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
+                        min="1"
+                        max="200"
                         disabled={isLoading}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                       <Label htmlFor="prompt-count">
-                          2. Number of prompts
-                       </Label>
-                      <Input
-                          id="prompt-count"
-                          type="number"
-                          value={count}
-                          onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
-                          min="1"
-                          max="200"
-                          disabled={isLoading}
-                      />
-                    </div>
-                 </div>
+                    />
+                  </div>
+               </div>
 
-                  <Accordion type="single" collapsible>
-                      <AccordionItem value="item-1">
-                          <AccordionTrigger>Master Prompt (Advanced)</AccordionTrigger>
-                          <AccordionContent className="space-y-2">
-                              <p className="text-sm text-muted-foreground">
-                                This is the core instruction set for the AI. Edit it to change the AI&apos;s behavior, style, and rules. If left empty, a powerful default prompt will be used automatically.
-                              </p>
-                              <Textarea
-                                  id="system-prompt-textarea"
-                                  value={systemPrompt}
-                                  onChange={(e) => setSystemPrompt(e.target.value)}
-                                  rows={15}
-                                  className="font-code text-xs"
-                                  disabled={isLoading}
-                              />
-                          </AccordionContent>
-                      </AccordionItem>
-                  </Accordion>
-                
-                <Button onClick={handleGenerate} disabled={isLoading} size="lg">
-                  <Wand2 className="mr-2 h-5 w-5" />
-                  {isLoading ? `Generating ${count} prompts...` : `Generate ${count} Prompts`}
-                </Button>
-              </div>
+                <Accordion type="single" collapsible>
+                    <AccordionItem value="item-1">
+                        <AccordionTrigger>Master Prompt (Advanced)</AccordionTrigger>
+                        <AccordionContent className="space-y-2">
+                            <p className="text-sm text-muted-foreground">
+                              This is the core instruction set for the AI. Edit it to change the AI&apos;s behavior, style, and rules. If left empty, a powerful default prompt will be used automatically.
+                            </p>
+                            <Textarea
+                                id="system-prompt-textarea"
+                                value={systemPrompt}
+                                onChange={(e) => setSystemPrompt(e.target.value)}
+                                rows={15}
+                                className="font-mono text-xs"
+                                disabled={isLoading}
+                            />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+              
+              <Button onClick={handleGenerate} disabled={isLoading} size="lg">
+                <Wand2 className="mr-2 h-5 w-5" />
+                {isLoading ? `Generating ${count} prompts...` : `Generate ${count} Prompts`}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {isLoading && (
+           <Card>
+             <CardContent className="p-6 space-y-4">
+                <h3 className="font-semibold text-lg">Generating your prompts...</h3>
+                <p className="text-sm text-muted-foreground">This may take a moment. Please wait.</p>
+                <div className="space-y-2 pt-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-4/5" />
+                </div>
+             </CardContent>
+           </Card>
+        )}
+
+        {generatedPrompts.length > 0 && !isLoading && (
+          <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Generated Prompts ({generatedPrompts.length})</CardTitle>
+                   <Button variant="outline" size="sm" onClick={handleDownloadCSV}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download CSV
+                  </Button>
+                </div>
+              </CardHeader>
+            <CardContent>
+              <Separator className="mb-4"/>
+                <div className="max-h-[500px] overflow-y-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[50px]">#</TableHead>
+                                <TableHead>Prompt</TableHead>
+                                <TableHead className="text-right w-[60px]">Copy</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {generatedPrompts.map((prompt, index) => (
+                                <TableRow key={index}>
+                                    <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                                    <TableCell className="font-mono text-sm">{prompt}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleCopy(prompt)}>
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
           </Card>
-
-          {isLoading && (
-             <Card>
-               <CardContent className="p-6 space-y-4">
-                  <h3 className="font-semibold text-lg">Generating your prompts...</h3>
-                  <p className="text-sm text-muted-foreground">This may take a moment. Please wait.</p>
-                  <div className="space-y-2 pt-2">
-                      <Skeleton className="h-8 w-full" />
-                      <Skeleton className="h-8 w-full" />
-                      <Skeleton className="h-8 w-4/5" />
-                  </div>
-               </CardContent>
-             </Card>
-          )}
-
-          {generatedPrompts.length > 0 && !isLoading && (
-            <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Generated Prompts ({generatedPrompts.length})</CardTitle>
-                     <Button variant="outline" size="sm" onClick={handleDownloadCSV}>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download CSV
-                    </Button>
-                  </div>
-                </CardHeader>
-              <CardContent>
-                <Separator className="mb-4"/>
-                  <div className="max-h-[500px] overflow-y-auto">
-                      <Table>
-                          <TableHeader>
-                              <TableRow>
-                                  <TableHead className="w-[50px]">#</TableHead>
-                                  <TableHead>Prompt</TableHead>
-                                  <TableHead className="text-right w-[60px]">Copy</TableHead>
-                              </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {generatedPrompts.map((prompt, index) => (
-                                  <TableRow key={index}>
-                                      <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
-                                      <TableCell className="font-code text-sm">{prompt}</TableCell>
-                                      <TableCell className="text-right">
-                                          <Button variant="ghost" size="icon" onClick={() => handleCopy(prompt)}>
-                                              <Copy className="h-4 w-4" />
-                                          </Button>
-                                      </TableCell>
-                                  </TableRow>
-                              ))}
-                          </TableBody>
-                      </Table>
-                  </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        )}
       </div>
     </>
   );
