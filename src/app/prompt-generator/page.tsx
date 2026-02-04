@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { runGenerateImagePrompt } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, Download, Wand2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -125,63 +125,69 @@ export default function PromptGeneratorPage() {
       
       <div className="mx-auto max-w-4xl space-y-8 pb-24">
         <Card>
-          <CardContent className="p-6">
-            <div className="grid w-full gap-6">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <div className="md:col-span-2 space-y-2">
-                    <Label htmlFor="idea-textarea">
-                      1. Enter a general theme or concept
+          <CardHeader>
+            <CardTitle>Create Your Prompts</CardTitle>
+            <CardDescription>
+              Start with a simple theme and let the AI do the creative work.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="idea-textarea">
+                    1. Base Idea or Theme
+                  </Label>
+                  <Textarea
+                    id="idea-textarea"
+                    placeholder="e.g., 'random kitchen objects', 'modern tech', 'abstract textures'"
+                    value={idea}
+                    onChange={(e) => setIdea(e.target.value)}
+                    rows={3}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="prompt-count">
+                      2. Number of Prompts
                     </Label>
-                    <Textarea
-                      id="idea-textarea"
-                      placeholder="e.g., 'random kitchen objects', 'modern tech', 'abstract textures'"
-                      value={idea}
-                      onChange={(e) => setIdea(e.target.value)}
-                      rows={2}
+                  <Input
+                      id="prompt-count"
+                      type="number"
+                      value={count}
+                      onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
+                      min="1"
+                      max="200"
                       disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                     <Label htmlFor="prompt-count">
-                        2. Number of prompts
-                     </Label>
-                    <Input
-                        id="prompt-count"
-                        type="number"
-                        value={count}
-                        onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
-                        min="1"
-                        max="200"
-                        disabled={isLoading}
-                    />
-                  </div>
-               </div>
+                  />
+                </div>
+             </div>
 
-                <Accordion type="single" collapsible>
-                    <AccordionItem value="item-1">
-                        <AccordionTrigger>Master Prompt (Advanced)</AccordionTrigger>
-                        <AccordionContent className="space-y-2">
-                            <p className="text-sm text-muted-foreground">
-                              This is the core instruction set for the AI. Edit it to change the AI&apos;s behavior, style, and rules. If left empty, a powerful default prompt will be used automatically.
-                            </p>
-                            <Textarea
-                                id="system-prompt-textarea"
-                                value={systemPrompt}
-                                onChange={(e) => setSystemPrompt(e.target.value)}
-                                rows={15}
-                                className="font-mono text-xs"
-                                disabled={isLoading}
-                            />
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-              
-              <Button onClick={handleGenerate} disabled={isLoading} size="lg">
-                <Wand2 className="mr-2 h-5 w-5" />
-                {isLoading ? `Generating ${count} prompts...` : `Generate ${count} Prompts`}
-              </Button>
-            </div>
+              <Accordion type="single" collapsible className="w-full border-t pt-6">
+                  <AccordionItem value="item-1" className="border-b-0">
+                      <AccordionTrigger>Advanced: Customize the Master Prompt</AccordionTrigger>
+                      <AccordionContent className="space-y-2 pt-2">
+                          <p className="text-sm text-muted-foreground">
+                            This is the core instruction set for the AI. Edit it to change the AI&apos;s behavior, style, and rules. If left empty, a powerful default prompt will be used automatically.
+                          </p>
+                          <Textarea
+                              id="system-prompt-textarea"
+                              value={systemPrompt}
+                              onChange={(e) => setSystemPrompt(e.target.value)}
+                              rows={15}
+                              className="font-mono text-xs"
+                              disabled={isLoading}
+                          />
+                      </AccordionContent>
+                  </AccordionItem>
+              </Accordion>
+            
           </CardContent>
+          <CardFooter className="flex justify-end">
+            <Button onClick={handleGenerate} disabled={isLoading} size="lg" className="w-full sm:w-auto">
+              <Wand2 className="mr-2 h-5 w-5" />
+              {isLoading ? `Generating ${count} prompts...` : `Generate ${count} Prompts`}
+            </Button>
+          </CardFooter>
         </Card>
 
         {isLoading && (
