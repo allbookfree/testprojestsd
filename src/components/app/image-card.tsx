@@ -1,90 +1,27 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { runGenerateImageMetadata } from '@/app/actions';
 import type { GenerateImageMetadataOutput } from '@/ai/flows/generate-image-metadata';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { MetadataDisplay } from './metadata-display';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertTriangle, Sparkles } from 'lucide-react';
-import { Progress } from '../ui/progress';
-import { useSettings } from '@/hooks/use-settings';
+import { AlertTriangle, Sparkles, Loader2, Hourglass } from 'lucide-react';
+
+type FileStatus = 'queued' | 'processing' | 'success' | 'error';
 
 interface ImageCardProps {
   file: File;
-  onMetadataGenerated: (fileName: string, metadata: GenerateImageMetadataOutput) => void;
+  previewUrl: string;
+  status: FileStatus;
+  metadata?: GenerateImageMetadataOutput;
+  error?: string;
 }
 
-type Status = 'idle' | 'processing' | 'success' | 'error';
-
-function fileToDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-export function ImageCard({ file, onMetadataGenerated }: ImageCardProps) {
-  const [status, setStatus] = useState<Status>('idle');
-  const [metadata, setMetadata] = useState<GenerateImageMetadataOutput | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [progress, setProgress] = useState(0);
-  const progressIntervalRef = useRef<NodeJS.Timeout>();
-  const [settings] = useSettings();
-
-  useEffect(() => {
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-
-    const processImage = async () => {
-      setStatus('processing');
-      
-      progressIntervalRef.current = setInterval(() => {
-        setProgress(prev => Math.min(prev + 5, 95));
-      }, 300);
-
-      try {
-        const dataUrl = await fileToDataURL(file);
-        const result = await runGenerateImageMetadata(dataUrl, settings);
-
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-        setProgress(100);
-
-        if ('error' in result) {
-          throw new Error(result.error);
-        }
-
-        setMetadata(result);
-        setStatus('success');
-        onMetadataGenerated(file.name, result);
-      } catch (e) {
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-        setError(e instanceof Error ? e.message : 'An unknown error occurred');
-        setStatus('error');
-      }
-    };
-
-    processImage();
-
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-    };
-  }, [file, settings, onMetadataGenerated]);
-
+export function ImageCard({ file, previewUrl, status, metadata, error }: ImageCardProps) {
   const renderContent = () => {
     switch (status) {
+      case 'queued':
       case 'processing':
         return (
           <>
@@ -124,23 +61,39 @@ export function ImageCard({ file, onMetadataGenerated }: ImageCardProps) {
     }
   };
 
+  const renderOverlay = () => {
+    switch(status) {
+        case 'processing':
+            return (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                </div>
+            );
+        case 'queued':
+            return (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <Hourglass className="h-8 w-8 text-white" />
+                </div>
+            );
+        case 'success':
+            return (
+                <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-xs font-medium text-primary-foreground backdrop-blur-sm">
+                    <Sparkles className="h-3 w-3" />
+                    <span>Done</span>
+                </div>
+            );
+        default:
+            return null;
+    }
+  }
+
   return (
     <Card className="overflow-hidden flex flex-col transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
       <div className="relative aspect-video">
         {previewUrl && (
           <Image src={previewUrl} alt={file.name} fill className="object-cover" />
         )}
-        {status === 'processing' && (
-           <div className="absolute bottom-0 w-full">
-            <Progress value={progress} className="h-1 rounded-none" />
-          </div>
-        )}
-         {status === 'success' && (
-          <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-primary/80 px-2 py-1 text-xs font-medium text-primary-foreground backdrop-blur-sm">
-            <Sparkles className="h-3 w-3" />
-            <span>Done</span>
-          </div>
-        )}
+        {renderOverlay()}
       </div>
       <div className="flex-grow">
         {renderContent()}
