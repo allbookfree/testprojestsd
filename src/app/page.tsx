@@ -189,7 +189,7 @@ export default function Home() {
                     <section>
                         {getOverallStatus()}
 
-                        <div className="flex justify-between items-center mb-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                             <h2 className="text-2xl font-bold tracking-tight">Your Results</h2>
                             <div className="flex items-center gap-4">
                                 <Button

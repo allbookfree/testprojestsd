@@ -70,7 +70,7 @@ export function ImageUploader({ onFilesAdded }: ImageUploaderProps) {
       <div className={cn('flex items-center justify-center h-16 w-16 rounded-full bg-secondary text-primary mb-4 transition-colors', isDragging && 'bg-primary/20')}>
         <UploadCloud className={cn('h-8 w-8 text-primary transition-transform', isDragging && 'scale-110')} />
       </div>
-      <h3 className="mt-2 text-2xl font-semibold">Click to upload or drag & drop</h3>
+      <h3 className="mt-2 text-xl sm:text-2xl font-semibold">Click to upload or drag & drop</h3>
       <p className="mt-2 text-sm text-muted-foreground">Supports JPG, PNG, WEBP, and more.</p>
        <Button
         variant="link"

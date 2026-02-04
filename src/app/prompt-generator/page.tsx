@@ -204,9 +204,9 @@ export default function PromptGeneratorPage() {
         {generatedPrompts.length > 0 && !isLoading && (
           <Card>
               <CardContent className="p-0">
-                <div className="flex justify-between items-center p-6 pb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-6 pb-4">
                   <h3 className="text-xl font-bold">Generated Prompts ({generatedPrompts.length})</h3>
-                   <Button variant="outline" size="sm" onClick={handleDownloadCSV}>
+                   <Button variant="outline" size="sm" onClick={handleDownloadCSV} className="self-end sm:self-auto">
                     <Download className="mr-2 h-4 w-4" />
                     Download CSV
                   </Button>
