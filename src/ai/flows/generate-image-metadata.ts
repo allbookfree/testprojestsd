@@ -34,18 +34,31 @@ const GenerateImageMetadataOutputSchema = z.object({
 });
 export type GenerateImageMetadataOutput = z.infer<typeof GenerateImageMetadataOutputSchema>;
 
-const autoPromptText = `Analyze this image for stock photo SEO and generate the following metadata. For title, description, and keywords, use your expert judgment to decide the optimal length and quantity for maximum marketability based on the image's content. Do not make them too short or too long.
+const autoPromptText = `You are an expert stock photo SEO specialist and metadata generator. Your task is to analyze the provided image and generate highly detailed, commercially valuable, and SEO-optimized metadata. Your goal is to maximize the image's discoverability and sales potential on major stock photo platforms.
 
-*   Title (SEO-friendly)
-*   Description (with colors/objects/mood)
-*   Keywords (comma-separated, long-tail)
-*   Rating (1-5 with reason)
+For the title, description, and keywords, use your expert judgment to decide the optimal length and quantity for maximum marketability.
 
-Output in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
+Generate the following:
+*   **Title:** A concise, powerful, and SEO-friendly title that accurately describes the image's subject and concept.
+*   **Description:** A detailed and engaging description. Mention the main subjects, objects, colors, lighting, mood, and potential concepts or metaphors. Write for both humans and search engines.
+*   **Keywords:** A comprehensive, comma-separated list of keywords. Include a mix of broad, specific, and long-tail keywords. Think about concepts, moods, colors, and potential uses. Aim for high commercial value.
+*   **Rating:** A rating from 1 to 5, with a brief justification based on its commercial viability, quality, and uniqueness.
+
+Output MUST be in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
 
 Image: {{media url=imageUri}}`;
 
-const manualPromptText = `Analyze this image for stock photo SEO and generate the following metadata:\n\n*   Title (approx. {{titleLength}} words, SEO-friendly)\n*   Description (approx. {{descriptionLength}} words, with colors/objects/mood)\n*   {{keywordCount}} keywords (comma-separated, long-tail)\n*   Rating (1-5 with reason)\n\nOutput in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}\n\nImage: {{media url=imageUri}}`;
+const manualPromptText = `You are an expert stock photo SEO specialist and metadata generator. Your task is to analyze the provided image and generate highly detailed, commercially valuable, and SEO-optimized metadata according to the specified lengths. Your goal is to maximize the image's discoverability and sales potential.
+
+Generate the following:
+*   **Title:** A concise, powerful, and SEO-friendly title of approximately {{titleLength}} words.
+*   **Description:** A detailed and engaging description of approximately {{descriptionLength}} words. Mention main subjects, objects, colors, lighting, mood, and potential concepts.
+*   **Keywords:** A comprehensive, comma-separated list of exactly {{keywordCount}} high-value keywords. Include broad, specific, and long-tail keywords.
+*   **Rating:** A rating from 1 to 5, with a brief justification based on its commercial viability and quality.
+
+Output MUST be in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
+
+Image: {{media url=imageUri}}`;
 
 export async function generateImageMetadata(input: GenerateImageMetadataInput): Promise<GenerateImageMetadataOutput> {
   // Use keys from input, but also have a fallback to the environment variable for existing setups.

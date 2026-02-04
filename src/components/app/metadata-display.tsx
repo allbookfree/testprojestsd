@@ -7,11 +7,9 @@ import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 
-interface MetadataDisplayProps {
-  metadata: GenerateImageMetadataOutput;
-}
-
+// Helper for the 'Copy' button with a toast notification
 function CopyableField({ label, textToCopy, children, className }: { label:string, textToCopy: string, children: React.ReactNode, className?: string }) {
   const { toast } = useToast();
 
@@ -33,6 +31,47 @@ function CopyableField({ label, textToCopy, children, className }: { label:strin
       </Button>
     </div>
   )
+}
+
+// Helper for the 'View All' dialog
+function ViewDetailsDialog({ title, content, copyText }: { title: string, content: React.ReactNode, copyText: string }) {
+    const { toast } = useToast();
+
+    const onCopy = () => {
+        navigator.clipboard.writeText(copyText);
+        toast({
+          title: 'Copied to clipboard!',
+          description: `${title} has been copied.`,
+        });
+    };
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 rounded-md px-2 text-xs font-medium">
+                    View All
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <div className="flex justify-between items-center pr-12 sm:pr-16">
+                        <DialogTitle>{title}</DialogTitle>
+                        <Button variant="outline" size="sm" onClick={onCopy}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy
+                        </Button>
+                    </div>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto pr-4 text-sm">
+                  {typeof content === 'string' ? <p className="leading-relaxed">{content}</p> : content}
+                </div>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+interface MetadataDisplayProps {
+  metadata: GenerateImageMetadataOutput;
 }
 
 export function MetadataDisplay({ metadata }: MetadataDisplayProps) {
@@ -67,24 +106,43 @@ export function MetadataDisplay({ metadata }: MetadataDisplayProps) {
 
       <Separator />
 
-      <CopyableField label="Description" textToCopy={metadata.description} className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">Description</p>
-        <p className="text-sm text-foreground/80 line-clamp-3 pr-8" title={metadata.description}>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Description</p>
+            <ViewDetailsDialog title="Full Description" content={metadata.description} copyText={metadata.description} />
+        </div>
+        <p className="text-sm text-foreground/80 line-clamp-3" title={metadata.description}>
           {metadata.description}
         </p>
-      </CopyableField>
+      </div>
       
       <div className="space-y-2 flex-grow flex flex-col min-h-0">
-        <CopyableField label="Keywords" textToCopy={metadata.keywords}>
-            <p className="text-sm font-medium text-muted-foreground pr-8">Keywords</p>
-        </CopyableField>
+        <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Keywords</p>
+            <ViewDetailsDialog 
+                title="All Keywords" 
+                copyText={metadata.keywords}
+                content={
+                    <div className="flex flex-wrap gap-2">
+                        {metadata.keywords.split(',').map((kw, i) => (
+                            <Badge variant="secondary" key={`${kw.trim()}-${i}`} className="font-normal">
+                                {kw.trim()}
+                            </Badge>
+                        ))}
+                    </div>
+                } 
+            />
+        </div>
         <div className="overflow-y-auto pr-1">
             <div className="flex flex-wrap gap-2">
-            {metadata.keywords.split(',').map((kw, i) => (
+            {metadata.keywords.split(',').slice(0, 15).map((kw, i) => (
                 <Badge variant="secondary" key={`${kw.trim()}-${i}`} className="font-normal">
                 {kw.trim()}
                 </Badge>
             ))}
+            {metadata.keywords.split(',').length > 15 && (
+                <Badge variant="outline" className="font-medium">... and more</Badge>
+            )}
             </div>
         </div>
       </div>
