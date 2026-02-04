@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Header } from '@/components/app/header';
 import { ImageUploader } from '@/components/app/image-uploader';
 import { ImageCard } from '@/components/app/image-card';
 import { Bot, FileText, UploadCloud } from 'lucide-react';
@@ -19,8 +18,7 @@ export default function Home() {
   }
 
   return (
-    <main>
-      <Header />
+    <>
       <PageHeader>
         <PageHeaderHeading>Metadata Generator</PageHeaderHeading>
         <PageHeaderDescription>
@@ -28,7 +26,7 @@ export default function Home() {
         </PageHeaderDescription>
       </PageHeader>
       
-      <div className="container px-4 md:px-8 pb-16">
+      <div className="container mx-auto px-4 md:px-8 pb-16">
         <section className="mb-12">
           <div className="mx-auto max-w-4xl">
             <ImageUploader onFilesAdded={handleFilesAdded} />
@@ -95,6 +93,6 @@ export default function Home() {
           </section>
         )}
       </div>
-    </main>
+    </>
   );
 }

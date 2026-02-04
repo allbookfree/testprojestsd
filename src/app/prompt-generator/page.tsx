@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Header } from '@/components/app/header';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { runGenerateImagePrompt } from '@/app/actions';
@@ -58,7 +57,7 @@ Your domain is the entire non-living world. Explore it broadly. Examples include
 *   **Output Format:** You must generate a JSON object with a single key "prompts", which contains an array of the generated prompt strings.`;
 
 export default function PromptGeneratorPage() {
-  const [idea, setIdea] = useState('');
+  const [idea, setIdea] = useState('random objects');
   const [count, setCount] = useState(10);
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const [generatedPrompts, setGeneratedPrompts] = useState<string[]>([]);
@@ -116,8 +115,7 @@ export default function PromptGeneratorPage() {
   }
 
   return (
-    <main>
-      <Header />
+    <>
       <PageHeader>
         <PageHeaderHeading>Halal Image Prompt Generator</PageHeaderHeading>
         <PageHeaderDescription>
@@ -125,7 +123,7 @@ export default function PromptGeneratorPage() {
         </PageHeaderDescription>
       </PageHeader>
       
-      <div className="container px-4 md:px-8 pb-24">
+      <div className="container mx-auto px-4 md:px-8 pb-24">
         <div className="mx-auto max-w-4xl space-y-8">
           <Card>
             <CardContent className="p-6">
@@ -165,7 +163,7 @@ export default function PromptGeneratorPage() {
                           <AccordionTrigger>Master Prompt (Advanced)</AccordionTrigger>
                           <AccordionContent className="space-y-2">
                               <p className="text-sm text-muted-foreground">
-                                  This is the core instruction set for the AI. Edit it to change the AI&apos;s behavior, style, and rules. If left empty, a powerful default prompt will be used automatically.
+                                This is the core instruction set for the AI. Edit it to change the AI&apos;s behavior, style, and rules. If left empty, a powerful default prompt will be used automatically.
                               </p>
                               <Textarea
                                   id="system-prompt-textarea"
@@ -243,6 +241,6 @@ export default function PromptGeneratorPage() {
           )}
         </div>
       </div>
-    </main>
+    </>
   );
 }
