@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AppShell } from '@/components/app/app-shell';
+import { Header } from '@/components/app/header';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { runGenerateImagePrompt } from '@/app/actions';
@@ -116,7 +116,8 @@ export default function PromptGeneratorPage() {
   }
 
   return (
-    <AppShell>
+    <main>
+      <Header />
       <PageHeader>
         <PageHeaderHeading>Halal Image Prompt Generator</PageHeaderHeading>
         <PageHeaderDescription>
@@ -242,6 +243,6 @@ export default function PromptGeneratorPage() {
           )}
         </div>
       </div>
-    </AppShell>
+    </main>
   );
 }

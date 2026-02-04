@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AppShell } from '@/components/app/app-shell';
+import { Header } from '@/components/app/header';
 import { ImageUploader } from '@/components/app/image-uploader';
 import { ImageCard } from '@/components/app/image-card';
 import { Bot, FileText, UploadCloud } from 'lucide-react';
@@ -19,7 +19,8 @@ export default function Home() {
   }
 
   return (
-    <AppShell>
+    <main>
+      <Header />
       <PageHeader>
         <PageHeaderHeading>Metadata Generator</PageHeaderHeading>
         <PageHeaderDescription>
@@ -94,6 +95,6 @@ export default function Home() {
           </section>
         )}
       </div>
-    </AppShell>
+    </main>
   );
 }
