@@ -30,14 +30,18 @@ export async function runGenerateImageMetadata(
 }
 
 export async function runGenerateImagePrompt(
-    idea: string
+    idea: string,
+    count: number
 ): Promise<GenerateImagePromptOutput | { error: string }> {
   try {
     if (!idea) {
       return { error: 'Idea is missing.' };
     }
+    if (count <= 0) {
+        return { error: 'Number of prompts must be greater than zero.' };
+    }
     // The settings aren't needed here for now, but could be added later to select a model
-    const result = await generateImagePrompt({ idea });
+    const result = await generateImagePrompt({ idea, count });
     return result;
   } catch (e) {
     console.error(e);
