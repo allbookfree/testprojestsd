@@ -68,7 +68,10 @@ export async function generateImageMetadata(input: GenerateImageMetadataInput): 
         plugins: [googleAI({ apiKey: key })],
       });
 
-      const tempPrompt = tempAi.definePrompt(promptDefinition, { model: modelToUse });
+      const tempPrompt = tempAi.definePrompt({
+        ...promptDefinition,
+        model: modelToUse
+      });
       
       const {
         imageUri,
