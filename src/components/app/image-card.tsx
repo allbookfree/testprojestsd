@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { runGenerateImageMetadata } from '@/app/actions';
 import type { GenerateImageMetadataOutput } from '@/ai/flows/generate-image-metadata';
@@ -32,16 +32,16 @@ export function ImageCard({ file }: ImageCardProps) {
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [progress, setProgress] = useState(0);
+  const progressIntervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
-    let progressInterval: NodeJS.Timeout | undefined;
 
     const processImage = async () => {
       setStatus('processing');
       
-      progressInterval = setInterval(() => {
+      progressIntervalRef.current = setInterval(() => {
         setProgress(prev => Math.min(prev + 5, 95));
       }, 300);
 
@@ -49,7 +49,9 @@ export function ImageCard({ file }: ImageCardProps) {
         const dataUrl = await fileToDataURL(file);
         const result = await runGenerateImageMetadata(dataUrl);
 
-        clearInterval(progressInterval);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
         setProgress(100);
 
         if ('error' in result) {
@@ -59,7 +61,9 @@ export function ImageCard({ file }: ImageCardProps) {
         setMetadata(result);
         setStatus('success');
       } catch (e) {
-        clearInterval(progressInterval);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
         setError(e instanceof Error ? e.message : 'An unknown error occurred');
         setStatus('error');
       }
@@ -69,7 +73,9 @@ export function ImageCard({ file }: ImageCardProps) {
 
     return () => {
       URL.revokeObjectURL(objectUrl);
-      clearInterval(progressInterval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
     };
   }, [file]);
 
