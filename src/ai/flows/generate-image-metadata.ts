@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview Generates SEO-optimized metadata for image files using AI analysis.
  * This file implements a key-rotation strategy for Google AI API keys.

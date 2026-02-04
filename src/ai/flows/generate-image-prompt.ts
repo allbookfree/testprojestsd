@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview Generates detailed, artistic, and permissible (halal) image prompts in bulk.
  *
