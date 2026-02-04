@@ -1,6 +1,7 @@
 'use server';
 
 import { generateImageMetadata, GenerateImageMetadataOutput } from "@/ai/flows/generate-image-metadata";
+import { generateImagePrompt, GenerateImagePromptOutput } from "@/ai/flows/generate-image-prompt";
 import { AppSettings } from "@/hooks/use-settings";
 
 export async function runGenerateImageMetadata(
@@ -25,5 +26,22 @@ export async function runGenerateImageMetadata(
     console.error(e);
     const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
     return { error: `Failed to generate metadata: ${errorMessage}` };
+  }
+}
+
+export async function runGenerateImagePrompt(
+    idea: string
+): Promise<GenerateImagePromptOutput | { error: string }> {
+  try {
+    if (!idea) {
+      return { error: 'Idea is missing.' };
+    }
+    // The settings aren't needed here for now, but could be added later to select a model
+    const result = await generateImagePrompt({ idea });
+    return result;
+  } catch (e) {
+    console.error(e);
+    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    return { error: `Failed to generate prompt: ${errorMessage}` };
   }
 }
