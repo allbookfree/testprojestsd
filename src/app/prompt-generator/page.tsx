@@ -86,17 +86,7 @@ export default function PromptGeneratorPage() {
     setIsLoading(false);
 
     if ('error' in result) {
-      let errorMessage = result.error;
-      if (errorMessage.toLowerCase().includes('all api keys failed')) {
-        if (errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('rate limit')) {
-            errorMessage = 'All available API keys have exceeded their usage quota. Please add a new key in settings or wait for the quota to reset.';
-        } else if (errorMessage.toLowerCase().includes('api key not valid')) {
-            errorMessage = 'None of the provided API keys are valid. Please add a valid key in settings.';
-        } else {
-            errorMessage = 'Processing failed after trying all API keys. Please check your keys and network connection.';
-        }
-      }
-      toast({ variant: 'destructive', title: 'Generation Failed', description: errorMessage });
+      toast({ variant: 'destructive', title: 'Generation Failed', description: result.error });
     } else {
       setGeneratedPrompts(result.prompts || []);
       toast({ title: 'Prompts Generated!', description: `${result.prompts?.length || 0} new image prompts are ready.` });
