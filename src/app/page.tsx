@@ -17,7 +17,7 @@ type FileStatus = 'queued' | 'processing' | 'success' | 'error';
 
 interface FileState {
     file: File;
-    path: string; // Add path property to store the real file path
+    path: string; // This will hold the actual file path from the user's computer
     status: FileStatus;
     metadata?: GenerateImageMetadataOutput;
     error?: string;
@@ -93,7 +93,8 @@ export default function Home() {
     const handleFilesAdded = (newFiles: File[]) => {
         const newFileStates: FileState[] = newFiles.map(file => ({
             file,
-            // In Electron, the File object has a 'path' property
+            // In Electron, the File object has a special 'path' property
+            // that gives us the real file location on the user's computer.
             path: (file as any).path, 
             status: 'queued',
             previewUrl: URL.createObjectURL(file),
@@ -121,7 +122,7 @@ export default function Home() {
             return;
         }
 
-        // The 'electronAPI' is exposed from preload.js
+        // The 'electronAPI' is exposed by preload.js. We check if it exists.
         if ((window as any).electronAPI) {
             const result = await (window as any).electronAPI.saveMetadata(fileState.path, fileState.metadata);
             if (result.success) {
@@ -137,10 +138,11 @@ export default function Home() {
                 });
             }
         } else {
+            // This message will show if the app is run in a regular web browser
             toast({
                 variant: 'destructive',
-                title: 'Not a Desktop App',
-                description: 'This feature is only available in the desktop version.',
+                title: 'Feature Not Available',
+                description: 'Saving metadata to a file is only available in the desktop app.',
             });
         }
     };
