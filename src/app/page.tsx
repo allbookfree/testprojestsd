@@ -11,11 +11,13 @@ import { runGenerateImageMetadata } from '@/app/actions';
 import { useSettings } from '@/hooks/use-settings';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
 
 type FileStatus = 'queued' | 'processing' | 'success' | 'error';
 
 interface FileState {
     file: File;
+    path: string; // Add path property to store the real file path
     status: FileStatus;
     metadata?: GenerateImageMetadataOutput;
     error?: string;
@@ -25,6 +27,7 @@ interface FileState {
 export default function Home() {
     const [fileStates, setFileStates] = useState<FileState[]>([]);
     const [settings] = useSettings();
+    const { toast } = useToast();
     const isProcessingRef = useRef(false);
 
     const processQueue = async () => {
@@ -90,6 +93,8 @@ export default function Home() {
     const handleFilesAdded = (newFiles: File[]) => {
         const newFileStates: FileState[] = newFiles.map(file => ({
             file,
+            // In Electron, the File object has a 'path' property
+            path: (file as any).path, 
             status: 'queued',
             previewUrl: URL.createObjectURL(file),
         }));
@@ -105,6 +110,41 @@ export default function Home() {
             return prevStates.filter(fs => fs.previewUrl !== previewUrlToRemove);
         });
     };
+    
+    const handleSaveMetadata = async (fileState: FileState) => {
+        if (!fileState.metadata || !fileState.path) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Metadata or file path is missing.',
+            });
+            return;
+        }
+
+        // The 'electronAPI' is exposed from preload.js
+        if ((window as any).electronAPI) {
+            const result = await (window as any).electronAPI.saveMetadata(fileState.path, fileState.metadata);
+            if (result.success) {
+                toast({
+                    title: 'Metadata Saved!',
+                    description: `Metadata has been written to ${fileState.file.name}.`,
+                });
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Failed to Save Metadata',
+                    description: result.error,
+                });
+            }
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Not a Desktop App',
+                description: 'This feature is only available in the desktop version.',
+            });
+        }
+    };
+
 
     const handleClear = () => {
         fileStates.forEach(fs => URL.revokeObjectURL(fs.previewUrl));
@@ -212,12 +252,9 @@ export default function Home() {
                             {fileStates.map((fs) => (
                                 <ImageCard
                                     key={fs.previewUrl}
-                                    file={fs.file}
-                                    previewUrl={fs.previewUrl}
-                                    status={fs.status}
-                                    metadata={fs.metadata}
-                                    error={fs.error}
+                                    fileState={fs}
                                     onRemove={handleRemoveFile}
+                                    onSaveMetadata={handleSaveMetadata}
                                 />
                             ))}
                         </div>
@@ -256,9 +293,9 @@ export default function Home() {
                                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary">
                                     <FileText className="h-8 w-8" />
                                 </div>
-                                <h3 className="mt-6 text-lg font-semibold">3. Get Metadata</h3>
+                                <h3 className="mt-6 text-lg font-semibold">3. Get & Save Metadata</h3>
                                 <p className="mt-2 text-muted-foreground">
-                                    Receive SEO-friendly titles, descriptions, and keywords in an instant.
+                                    Receive SEO-friendly data and save it directly to your image file.
                                 </p>
                             </div>
                         </div>
