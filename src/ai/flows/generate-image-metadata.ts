@@ -103,6 +103,16 @@ export async function generateImageMetadata(input: GenerateImageMetadataInput): 
       });
 
       if (output) {
+        const permanentKeyword = "ai image";
+        // Ensure the permanent keyword is present.
+        if (output.keywords) {
+          const lowerCaseKeywords = output.keywords.toLowerCase();
+          if (!lowerCaseKeywords.includes(permanentKeyword)) {
+            output.keywords = `${output.keywords}, ${permanentKeyword}`;
+          }
+        } else {
+          output.keywords = permanentKeyword;
+        }
         return output; // Success!
       }
     } catch (e: any) {
