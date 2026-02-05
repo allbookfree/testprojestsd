@@ -16,6 +16,7 @@ import { PageHeader, PageHeaderDescription, PageHeaderHeading } from '@/componen
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useSettings } from '@/hooks/use-settings';
 
+// This is the default system prompt that will be used as a fallback.
 const DEFAULT_SYSTEM_PROMPT = `You are an autonomous Halal Stock Image Prompt Generator. Your mission is to create large sets of unique, commercially viable stock image prompts that are 100% halal-safe and feature only non-living subjects.
 
 ---
@@ -57,6 +58,7 @@ Your domain is the entire non-living world. Explore it broadly. Examples include
 *   **Prompt Format:** Each prompt must be a single, clear English sentence. It should include the subject, context, composition type, lighting, visual style, and quality keywords (e.g., "hyper-detailed," "photorealistic 8K," "professional stock photo").
 *   **Output Format:** You must generate a JSON object with a single key "prompts", which contains an array of the generated prompt strings.`;
 
+
 export default function PromptGeneratorPage() {
   const [idea, setIdea] = useState('random objects');
   const [count, setCount] = useState(10);
@@ -83,8 +85,18 @@ export default function PromptGeneratorPage() {
     const result = await runGenerateImagePrompt(idea, count, finalSystemPrompt, settings);
     setIsLoading(false);
 
-    if (result.error) {
-      toast({ variant: 'destructive', title: 'Generation Failed', description: result.error });
+    if ('error' in result) {
+      let errorMessage = result.error;
+      if (errorMessage.toLowerCase().includes('all api keys failed')) {
+        if (errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('rate limit')) {
+            errorMessage = 'All available API keys have exceeded their usage quota. Please add a new key in settings or wait for the quota to reset.';
+        } else if (errorMessage.toLowerCase().includes('api key not valid')) {
+            errorMessage = 'None of the provided API keys are valid. Please add a valid key in settings.';
+        } else {
+            errorMessage = 'Processing failed after trying all API keys. Please check your keys and network connection.';
+        }
+      }
+      toast({ variant: 'destructive', title: 'Generation Failed', description: errorMessage });
     } else {
       setGeneratedPrompts(result.prompts || []);
       toast({ title: 'Prompts Generated!', description: `${result.prompts?.length || 0} new image prompts are ready.` });

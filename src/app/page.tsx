@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ImageUploader } from '@/components/app/image-uploader';
 import { ImageCard } from '@/components/app/image-card';
-import { Bot, Download, FileText, UploadCloud, Loader, CircleCheck } from 'lucide-react';
+import { Bot, Download, FileText, UploadCloud, Loader, CircleCheck, Trash2 } from 'lucide-react';
 import { PageHeader, PageHeaderDescription, PageHeaderHeading } from '@/components/app/page-header';
 import type { GenerateImageMetadataOutput } from '@/ai/flows/generate-image-metadata';
 import { Button } from '@/components/ui/button';
@@ -191,21 +191,20 @@ export default function Home() {
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                             <h2 className="text-2xl font-bold tracking-tight">Your Results</h2>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
                                 <Button
                                     variant="outline"
+                                    onClick={handleClear}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Clear All
+                                </Button>
+                                <Button
                                     onClick={handleDownloadAll}
                                     disabled={fileStates.every(f => f.status !== 'success')}
                                 >
                                     <Download className="mr-2 h-4 w-4" />
-                                    Download All (.csv)
-                                </Button>
-                                <Button
-                                    variant="link"
-                                    onClick={handleClear}
-                                    className="text-sm font-semibold text-primary"
-                                >
-                                    Start Over
+                                    Download (.csv)
                                 </Button>
                             </div>
                         </div>
