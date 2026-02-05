@@ -39,7 +39,7 @@ const autoPromptText = `You are an expert stock photo SEO specialist and metadat
 Generate the following:
 *   **Title:** A concise, powerful, and SEO-friendly title that accurately describes the image's subject and concept. Aim for a length that is optimal for search engines (typically 10-15 words).
 *   **Description:** A detailed and engaging description of 2-4 sentences. Mention the main subjects, objects, colors, lighting, mood, and potential concepts or metaphors. Write for both humans and search engines.
-*   **Keywords:** A comprehensive, comma-separated list of 30 to 50 commercially valuable keywords. This is critical for discoverability. Include a mix of broad, specific, conceptual, and long-tail keywords.
+*   **Keywords:** A comprehensive, comma-separated list of 30 to 50 commercially valuable keywords. This is critical for discoverability. Include a mix of broad, specific, conceptual, and long-tail keywords. Do NOT exceed 50 keywords.
 *   **Rating:** A rating from 1 to 5, with a brief justification based on its commercial viability, quality, and uniqueness.
 
 Output MUST be in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
@@ -51,7 +51,7 @@ const manualPromptText = `You are an expert stock photo SEO specialist and metad
 Generate the following:
 *   **Title:** A concise, powerful, and SEO-friendly title of approximately {{titleLength}} words.
 *   **Description:** A detailed and engaging description of approximately {{descriptionLength}} words. Mention main subjects, objects, colors, lighting, mood, and potential concepts.
-*   **Keywords:** A comprehensive, comma-separated list of exactly {{keywordCount}} high-value keywords.
+*   **Keywords:** A comprehensive, comma-separated list of exactly {{keywordCount}} high-value keywords. Do NOT exceed 50 keywords under any circumstances.
 *   **Rating:** A rating from 1 to 5, with a brief justification based on its commercial viability and quality.
 
 Output MUST be in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
