@@ -122,8 +122,9 @@ export default function Home() {
 
         successfulMetadata.forEach(({ file, metadata }) => {
             if (!metadata) return;
+            const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
             const row = [
-                `"${file.name.replace(/"/g, '""')}"`,
+                `"${fileNameWithoutExt.replace(/"/g, '""')}"`,
                 `"${metadata.title.replace(/"/g, '""')}"`,
                 `"${metadata.description.replace(/"/g, '""')}"`,
                 `"${metadata.keywords.replace(/"/g, '""')}"`,
