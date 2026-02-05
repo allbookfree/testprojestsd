@@ -107,7 +107,7 @@ export async function generateImageMetadata(input: GenerateImageMetadataInput): 
         // Ensure the permanent keyword is present.
         if (output.keywords) {
           const lowerCaseKeywords = output.keywords.toLowerCase();
-          if (!lowerCaseKeywords.includes(permanentKeyword)) {
+          if (!lowerCaseKeywords.split(',').map(k => k.trim()).includes(permanentKeyword)) {
             output.keywords = `${output.keywords}, ${permanentKeyword}`;
           }
         } else {
