@@ -17,7 +17,8 @@ import { Settings, Plus, Trash2, Loader2, CheckCircle, XCircle, Clock } from 'lu
 import { useSettings } from '@/hooks/use-settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Separator } from '../ui/separator';
-import { testApiKey, ApiKeyTestResult } from '@/app/actions';
+import { testApiKey } from '@/app/actions';
+import type { ApiKeyTestResult } from '@/app/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Switch } from '../ui/switch';
 import { cn } from '@/lib/utils';
