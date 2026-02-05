@@ -34,25 +34,25 @@ const GenerateImageMetadataOutputSchema = z.object({
 });
 export type GenerateImageMetadataOutput = z.infer<typeof GenerateImageMetadataOutputSchema>;
 
-const autoPromptText = `You are an expert stock photo SEO specialist and metadata generator. Your task is to analyze the provided image and generate highly detailed, commercially valuable, and SEO-optimized metadata. Your goal is to maximize the image's discoverability and sales potential on major stock photo platforms like Adobe Stock and Shutterstock.
+const autoPromptText = `You are an expert SEO specialist and metadata generator for Adobe Stock. Your task is to analyze the provided image and generate commercially valuable, and highly SEO-optimized metadata. Your goal is to maximize the image's discoverability and sales potential on Adobe Stock.
 
 Generate the following:
-*   **Title:** A concise, powerful, and SEO-friendly title that accurately describes the image's subject and concept. Aim for a length that is optimal for search engines (typically 10-15 words).
-*   **Description:** A detailed and engaging description of 2-4 sentences. Mention the main subjects, objects, colors, lighting, mood, and potential concepts or metaphors. Write for both humans and search engines.
-*   **Keywords:** A comprehensive, comma-separated list of 30 to 50 commercially valuable keywords. This is critical for discoverability. Include a mix of broad, specific, conceptual, and long-tail keywords. Do NOT exceed 50 keywords.
+*   **Title:** A powerful, commercially valuable, and SEO-friendly title that accurately describes the image's core subject and concept. The title itself should function as the primary subject line. Aim for a length that is optimal for search engines (typically 10-15 words).
+*   **Description:** A detailed and engaging description of 2-4 sentences. Mention the main subjects, objects, colors, lighting, mood, and potential commercial concepts or metaphors. Write for both humans and search engines.
+*   **Keywords:** A comprehensive, comma-separated list of 30 to 48 commercially valuable keywords, based on the image's content and potential use cases. The number of keywords should depend on the image's complexity. **Do NOT exceed 48 keywords under any circumstances.**
 *   **Rating:** A rating from 1 to 5, with a brief justification based on its commercial viability, quality, and uniqueness.
 
 Output MUST be in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
 
 Image: {{media url=imageUri}}`;
 
-const manualPromptText = `You are an expert stock photo SEO specialist and metadata generator. Your task is to analyze the provided image and generate highly detailed, commercially valuable, and SEO-optimized metadata according to the specified lengths. Your goal is to maximize the image's discoverability and sales potential.
+const manualPromptText = `You are an expert SEO specialist and metadata generator for Adobe Stock. Your task is to analyze the provided image and generate commercially valuable, and highly SEO-optimized metadata according to the specified lengths.
 
 Generate the following:
-*   **Title:** A concise, powerful, and SEO-friendly title of approximately {{titleLength}} words.
-*   **Description:** A detailed and engaging description of approximately {{descriptionLength}} words. Mention main subjects, objects, colors, lighting, mood, and potential concepts.
-*   **Keywords:** A comprehensive, comma-separated list of exactly {{keywordCount}} high-value keywords. Do NOT exceed 50 keywords under any circumstances.
-*   **Rating:** A rating from 1 to 5, with a brief justification based on its commercial viability and quality.
+*   **Title:** A powerful and SEO-friendly title of approximately {{titleLength}} words. This title is the most critical element for search ranking.
+*   **Description:** A detailed and engaging description of approximately {{descriptionLength}} words.
+*   **Keywords:** A comprehensive, comma-separated list of exactly {{keywordCount}} high-value keywords. **Do NOT exceed 48 keywords under any circumstances.**
+*   **Rating:** A rating from 1 to 5, based on its commercial viability and quality.
 
 Output MUST be in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
 
@@ -91,28 +91,34 @@ export async function generateImageMetadata(input: GenerateImageMetadataInput): 
         model: modelToUse
       });
       
-      const {
-        imageUri,
-        titleLength = 15,
-        descriptionLength = 100,
-        keywordCount = 25
-      } = input;
-
       const { output } = await tempPrompt({
         ...input
       });
 
       if (output) {
         const permanentKeyword = "ai image";
-        // Ensure the permanent keyword is present.
+        let keywords: string[] = [];
+
         if (output.keywords) {
-          const lowerCaseKeywords = output.keywords.toLowerCase();
-          if (!lowerCaseKeywords.split(',').map(k => k.trim()).includes(permanentKeyword)) {
-            output.keywords = `${output.keywords}, ${permanentKeyword}`;
-          }
-        } else {
-          output.keywords = permanentKeyword;
+            // 1. Split, trim, and filter empty or whitespace-only strings
+            keywords = output.keywords.split(',').map(k => k.trim()).filter(Boolean);
         }
+
+        // 2. Remove the permanent keyword if AI already included it, to avoid duplicates
+        const permanentKeywordIndex = keywords.findIndex(k => k.toLowerCase() === permanentKeyword.toLowerCase());
+        if (permanentKeywordIndex > -1) {
+            keywords.splice(permanentKeywordIndex, 1);
+        }
+
+        // 3. Enforce the max limit of 47 from AI + 1 permanent = 48 total
+        const finalKeywords = keywords.slice(0, 47);
+        
+        // 4. Add the permanent keyword
+        finalKeywords.push(permanentKeyword);
+        
+        // 5. Update the output
+        output.keywords = finalKeywords.join(', ');
+
         return output; // Success!
       }
     } catch (e: any) {
