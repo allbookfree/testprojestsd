@@ -17,7 +17,6 @@ type FileStatus = 'queued' | 'processing' | 'success' | 'error';
 
 interface FileState {
     file: File;
-    path: string; // This will hold the actual file path from the user's computer
     status: FileStatus;
     metadata?: GenerateImageMetadataOutput;
     error?: string;
@@ -93,9 +92,6 @@ export default function Home() {
     const handleFilesAdded = (newFiles: File[]) => {
         const newFileStates: FileState[] = newFiles.map(file => ({
             file,
-            // In Electron, the File object has a special 'path' property
-            // that gives us the real file location on the user's computer.
-            path: (file as any).path, 
             status: 'queued',
             previewUrl: URL.createObjectURL(file),
         }));
@@ -111,42 +107,6 @@ export default function Home() {
             return prevStates.filter(fs => fs.previewUrl !== previewUrlToRemove);
         });
     };
-    
-    const handleSaveMetadata = async (fileState: FileState) => {
-        if (!fileState.metadata || !fileState.path) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Metadata or file path is missing.',
-            });
-            return;
-        }
-
-        // The 'electronAPI' is exposed by preload.js. We check if it exists.
-        if ((window as any).electronAPI) {
-            const result = await (window as any).electronAPI.saveMetadata(fileState.path, fileState.metadata);
-            if (result.success) {
-                toast({
-                    title: 'Metadata Saved!',
-                    description: `Metadata has been written to ${fileState.file.name}.`,
-                });
-            } else {
-                toast({
-                    variant: 'destructive',
-                    title: 'Failed to Save Metadata',
-                    description: result.error,
-                });
-            }
-        } else {
-            // This message will show if the app is run in a regular web browser
-            toast({
-                variant: 'destructive',
-                title: 'Feature Not Available',
-                description: 'Saving metadata to a file is only available in the desktop app.',
-            });
-        }
-    };
-
 
     const handleClear = () => {
         fileStates.forEach(fs => URL.revokeObjectURL(fs.previewUrl));
@@ -256,7 +216,6 @@ export default function Home() {
                                     key={fs.previewUrl}
                                     fileState={fs}
                                     onRemove={handleRemoveFile}
-                                    onSaveMetadata={handleSaveMetadata}
                                 />
                             ))}
                         </div>
@@ -295,9 +254,9 @@ export default function Home() {
                                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary">
                                     <FileText className="h-8 w-8" />
                                 </div>
-                                <h3 className="mt-6 text-lg font-semibold">3. Get & Save Metadata</h3>
+                                <h3 className="mt-6 text-lg font-semibold">3. Get Metadata</h3>
                                 <p className="mt-2 text-muted-foreground">
-                                    Receive SEO-friendly data and save it directly to your image file.
+                                    Receive SEO-friendly data and download it as a CSV file.
                                 </p>
                             </div>
                         </div>

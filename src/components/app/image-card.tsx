@@ -6,14 +6,13 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { MetadataDisplay } from './metadata-display';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertTriangle, Sparkles, Loader2, Hourglass, X, Save } from 'lucide-react';
+import { AlertTriangle, Sparkles, Loader2, Hourglass, X } from 'lucide-react';
 import { Button } from '../ui/button';
 
 type FileStatus = 'queued' | 'processing' | 'success' | 'error';
 
 interface FileState {
     file: File;
-    path: string;
     status: FileStatus;
     metadata?: GenerateImageMetadataOutput;
     error?: string;
@@ -23,10 +22,9 @@ interface FileState {
 interface ImageCardProps {
   fileState: FileState;
   onRemove: (previewUrl: string) => void;
-  onSaveMetadata: (fileState: FileState) => void;
 }
 
-export function ImageCard({ fileState, onRemove, onSaveMetadata }: ImageCardProps) {
+export function ImageCard({ fileState, onRemove }: ImageCardProps) {
   const { file, previewUrl, status, metadata, error } = fileState;
   
   const renderContent = () => {
@@ -129,12 +127,6 @@ export function ImageCard({ fileState, onRemove, onSaveMetadata }: ImageCardProp
 
        <CardFooter className="bg-secondary/50 p-3 mt-auto flex items-center justify-between">
          <p className="truncate text-xs text-muted-foreground w-full" title={file.name}>{file.name}</p>
-         {status === 'success' && (
-            <Button size="sm" className="h-7" onClick={() => onSaveMetadata(fileState)}>
-                <Save className="mr-2 h-4 w-4" />
-                Save to File
-            </Button>
-         )}
        </CardFooter>
     </Card>
   );
