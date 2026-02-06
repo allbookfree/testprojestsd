@@ -1,3 +1,4 @@
+'use server';
 /**
  * @fileOverview Generates SEO-optimized metadata for image files using AI analysis.
  * This file implements a key-rotation strategy for Google AI API keys.
@@ -34,27 +35,32 @@ const GenerateImageMetadataOutputSchema = z.object({
 });
 export type GenerateImageMetadataOutput = z.infer<typeof GenerateImageMetadataOutputSchema>;
 
-const autoPromptText = `You are an expert SEO specialist and metadata generator for Adobe Stock. Your task is to analyze the provided image and generate commercially valuable, and highly SEO-optimized metadata. Your goal is to maximize the image's discoverability and sales potential on Adobe Stock.
+const masterPromptText = `You are a world-class SEO expert and a top-performing Adobe Stock content specialist. Your sole mission is to analyze an image and generate powerful, commercially valuable, and 100% SEO-optimized metadata. Your work directly impacts the image's discoverability and sales potential on platforms like Adobe Stock. Be precise, be strategic, and think like a buyer.
 
-Generate the following:
-*   **Title:** A powerful, commercially valuable, and SEO-friendly title that accurately describes the image's core subject and concept. The title itself should function as the primary subject line. Aim for a length that is optimal for search engines (typically 10-15 words).
-*   **Description:** A detailed and engaging description of 2-4 sentences. Mention the main subjects, objects, colors, lighting, mood, and potential commercial concepts or metaphors. Write for both humans and search engines.
-*   **Keywords:** A comprehensive, comma-separated list of 30 to 48 commercially valuable keywords, based on the image's content and potential use cases. The number of keywords should depend on the image's complexity. **Do NOT exceed 48 keywords under any circumstances.**
-*   **Rating:** A rating from 1 to 5, with a brief justification based on its commercial viability, quality, and uniqueness.
+**Analysis & Strategy:**
+First, deeply analyze the provided image. Identify the main subject, setting, colors, lighting, mood, composition, and any commercial concepts or metaphors it represents. Consider who would buy this image and for what purpose (e.g., website banner, blog post, advertisement).
 
-Output MUST be in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
+**Metadata Generation:**
+Based on your expert analysis, generate the following metadata. Output MUST be in a valid JSON format: {"title": "...", "description": "...", "keywords": "...", "rating": ...}
 
-Image: {{media url=imageUri}}`;
+1.  **Title:**
+    *   This is the MOST CRITICAL element for SEO.
+    *   Craft a powerful, descriptive, and highly searchable title. It must function as the primary subject line.
+    *   {{#if useAutoMetadata}}Aim for an optimal length of 10-15 words, balancing detail with clarity.{{else}}The title must be approximately {{titleLength}} words long.{{/if}}
 
-const manualPromptText = `You are an expert SEO specialist and metadata generator for Adobe Stock. Your task is to analyze the provided image and generate commercially valuable, and highly SEO-optimized metadata according to the specified lengths.
+2.  **Description:**
+    *   Write a detailed and engaging description of 2-4 sentences.
+    *   Mention the main subjects, actions, colors, lighting, mood, and potential commercial uses. Write for both humans and search engines.
+    *   {{#unless useAutoMetadata}}The description must be approximately {{descriptionLength}} words long.{{/unless}}
 
-Generate the following:
-*   **Title:** A powerful and SEO-friendly title of approximately {{titleLength}} words. This title is the most critical element for search ranking.
-*   **Description:** A detailed and engaging description of approximately {{descriptionLength}} words.
-*   **Keywords:** A comprehensive, comma-separated list of exactly {{keywordCount}} high-value keywords. **Do NOT exceed 48 keywords under any circumstances.**
-*   **Rating:** A rating from 1 to 5, based on its commercial viability and quality.
+3.  **Keywords:**
+    *   This is your secret weapon. Generate a comprehensive, comma-separated list of high-value keywords.
+    *   {{#if useAutoMetadata}}The number of keywords should be between 30 and 48, based on the image's complexity and commercial potential. More complex images deserve more keywords.{{else}}Generate exactly {{keywordCount}} keywords.{{/if}}
+    *   **CRITICAL RULE: The total number of keywords must NOT exceed 48 under any circumstances.**
+    *   Include a mix of literal keywords (e.g., 'tree', 'green', 'leaf') and conceptual keywords (e.g., 'growth', 'nature', 'sustainability').
 
-Output MUST be in JSON format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\", \"rating\": ...}
+4.  **Rating:**
+    *   Provide an honest rating from 1 to 5, based on its overall quality, uniqueness, and commercial viability for Adobe Stock. A 5-star rating should be reserved for truly exceptional, high-demand images.
 
 Image: {{media url=imageUri}}`;
 
@@ -73,7 +79,6 @@ export async function generateImageMetadata(input: GenerateImageMetadataInput): 
 
   let lastError: any = null;
   const modelToUse = input.model || 'googleai/gemini-2.5-flash';
-  const promptText = input.useAutoMetadata ? autoPromptText : manualPromptText;
 
   for (const key of keysToTry) {
     if (!key) continue;
@@ -84,10 +89,10 @@ export async function generateImageMetadata(input: GenerateImageMetadataInput): 
       });
 
       const tempPrompt = tempAi.definePrompt({
-        name: 'generateImageMetadataPrompt_dynamic',
+        name: 'generateImageMetadataPrompt_dynamic_v2',
         input: { schema: GenerateImageMetadataInputSchema.omit({ apiKeys: true, model: true }) },
         output: { schema: GenerateImageMetadataOutputSchema },
-        prompt: promptText,
+        prompt: masterPromptText,
         model: modelToUse
       });
       

@@ -8,7 +8,7 @@ import {
   generateImagePrompt,
   GenerateImagePromptOutput,
 } from '@/ai/flows/generate-image-prompt';
-import { AppSettings } from '@/hooks/use-settings';
+import type { AppSettings, ApiKey } from '@/hooks/use-settings';
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import type { ApiKeyTestResult } from '@/app/types';
@@ -21,9 +21,10 @@ export async function runGenerateImageMetadata(
     if (!imageUri) {
       return { error: 'Image data is missing.' };
     }
+    const apiKeys = settings.apiKeys.map((k: ApiKey) => k.key);
     const metadata = await generateImageMetadata({
       imageUri,
-      apiKeys: settings.apiKeys,
+      apiKeys: apiKeys,
       model: settings.model,
       useAutoMetadata: settings.useAutoMetadata,
       titleLength: settings.titleLength,
@@ -65,12 +66,13 @@ export async function runGenerateImagePrompt(
     if (count <= 0) {
       return { error: 'Number of prompts must be greater than zero.' };
     }
-
+    
+    const apiKeys = settings.apiKeys.map((k: ApiKey) => k.key);
     const result = await generateImagePrompt({
       idea,
       count,
       systemPrompt: systemPrompt,
-      apiKeys: settings.apiKeys,
+      apiKeys: apiKeys,
       model: settings.model,
     });
     return result;

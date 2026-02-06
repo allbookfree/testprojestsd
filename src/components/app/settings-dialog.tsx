@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Plus, Trash2, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { useSettings } from '@/hooks/use-settings';
+import { useSettings, type ApiKey } from '@/hooks/use-settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Separator } from '../ui/separator';
 import { testApiKey } from '@/app/actions';
@@ -22,12 +22,13 @@ import type { ApiKeyTestResult } from '@/app/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Switch } from '../ui/switch';
 import { cn } from '@/lib/utils';
+import { Badge } from '../ui/badge';
 
 type TestStatus = ApiKeyTestResult['status'] | 'idle' | 'testing';
 
 interface ApiKeyItemProps {
-  apiKey: string;
-  onRemove: (key: string) => void;
+  apiKey: ApiKey;
+  onRemove: (id: string) => void;
 }
 
 function ApiKeyItem({ apiKey, onRemove }: ApiKeyItemProps) {
@@ -38,7 +39,7 @@ function ApiKeyItem({ apiKey, onRemove }: ApiKeyItemProps) {
   const handleTest = async () => {
     setStatus('testing');
     setError('');
-    const result = await testApiKey(apiKey);
+    const result = await testApiKey(apiKey.key);
     setStatus(result.status);
 
     if (result.success) {
@@ -87,13 +88,16 @@ function ApiKeyItem({ apiKey, onRemove }: ApiKeyItemProps) {
             <div className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-secondary/50">
               <div className='flex items-center gap-2 min-w-0'>
                 {getStatusIcon()}
-                <span className="font-mono text-sm truncate" title={apiKey}>{maskKey(apiKey)}</span>
+                <div className="flex-1 truncate">
+                  <p className="font-mono text-sm truncate" title={apiKey.key}>{maskKey(apiKey.key)}</p>
+                  {apiKey.note && <p className="text-xs text-muted-foreground truncate" title={apiKey.note}>{apiKey.note}</p>}
+                </div>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <Button variant="ghost" size="sm" onClick={handleTest} disabled={status === 'testing'}>
                   {status === 'testing' ? 'Testing...' : 'Test'}
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onRemove(apiKey)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onRemove(apiKey.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                   <span className="sr-only">Remove key</span>
                 </Button>
@@ -111,6 +115,7 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
   const { toast } = useToast();
   const [settings, setSettings] = useSettings();
   const [newKey, setNewKey] = useState('');
+  const [newKeyNote, setNewKeyNote] = useState('');
   const [open, setOpen] = useState(false);
 
   const handleAddKey = () => {
@@ -118,17 +123,23 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
       toast({ variant: 'destructive', title: 'Invalid API Key', description: 'API key cannot be empty.' });
       return;
     }
-    if (settings.apiKeys.includes(newKey)) {
+    if (settings.apiKeys.some(k => k.key === newKey)) {
         toast({ variant: 'destructive', title: 'Duplicate API Key', description: 'This API key has already been added.' });
         return;
     }
-    setSettings(prev => ({ ...prev, apiKeys: [...prev.apiKeys, newKey] }));
+    const newApiKey: ApiKey = {
+        id: Date.now().toString(),
+        key: newKey.trim(),
+        note: newKeyNote.trim(),
+    };
+    setSettings(prev => ({ ...prev, apiKeys: [...prev.apiKeys, newApiKey] }));
     setNewKey('');
+    setNewKeyNote('');
     toast({ title: 'API Key Added', description: 'The new API key has been saved.' });
   };
 
-  const handleRemoveKey = (keyToRemove: string) => {
-    setSettings(prev => ({ ...prev, apiKeys: prev.apiKeys.filter(key => key !== keyToRemove) }));
+  const handleRemoveKey = (idToRemove: string) => {
+    setSettings(prev => ({ ...prev, apiKeys: prev.apiKeys.filter(key => key.id !== idToRemove) }));
     toast({ title: 'API Key Removed' });
   };
 
@@ -167,28 +178,34 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
                     </a>.
                     </p>
                 </div>
-                <div className="space-y-3">
-                    <Label htmlFor="new-api-key">New API Key</Label>
+                <div className="space-y-3 rounded-lg border p-4">
+                    <Label>Add New API Key</Label>
                     <div className="flex items-center space-x-2">
                         <Input
                             id="new-api-key"
                             value={newKey}
                             onChange={(e) => setNewKey(e.target.value)}
-                            placeholder="Enter new Google AI API key"
+                            placeholder="Enter Google AI API key"
                             className="font-mono"
                         />
-                        <Button type="button" size="icon" onClick={handleAddKey}>
+                         <Button type="button" size="icon" onClick={handleAddKey} disabled={!newKey.trim()}>
                             <Plus className="h-4 w-4" />
                             <span className="sr-only">Add Key</span>
                         </Button>
                     </div>
+                    <Input
+                        id="new-api-key-note"
+                        value={newKeyNote}
+                        onChange={(e) => setNewKeyNote(e.target.value)}
+                        placeholder="Note (e.g., 'Personal Account')"
+                    />
                 </div>
                 <div className="space-y-2">
                     <h4 className="text-sm font-medium">Saved Keys</h4>
                     {settings.apiKeys.length > 0 ? (
                         <div className="max-h-40 overflow-y-auto space-y-1 rounded-md border p-1">
                             {settings.apiKeys.map((key) => (
-                                <ApiKeyItem key={key} apiKey={key} onRemove={handleRemoveKey} />
+                                <ApiKeyItem key={key.id} apiKey={key} onRemove={handleRemoveKey} />
                             ))}
                         </div>
                     ) : (
@@ -219,9 +236,12 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
 
                 <div className="space-y-3 rounded-lg border bg-background/50 p-4">
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="auto-metadata" className="font-semibold">
-                            Automatic Mode
-                        </Label>
+                        <div className='flex items-center gap-2'>
+                          <Label htmlFor="auto-metadata" className="font-semibold">
+                              Automatic Mode
+                          </Label>
+                          <Badge variant="outline" className="text-primary border-primary">Recommended</Badge>
+                        </div>
                         <Switch
                             id="auto-metadata"
                             checked={settings.useAutoMetadata}
@@ -263,7 +283,7 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
                             type="number"
                             value={settings.keywordCount}
                             onChange={(e) => setSettings(prev => ({...prev, keywordCount: parseInt(e.target.value, 10) || 0}))}
-                            placeholder="e.g., 25"
+                            placeholder="e.g., 40"
                             disabled={settings.useAutoMetadata}
                         />
                     </div>
