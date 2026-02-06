@@ -23,6 +23,52 @@ interface FileState {
     previewUrl: string;
 }
 
+const resizeImage = (file: File, maxSize: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxSize) {
+                        height = Math.round((height * maxSize) / width);
+                        width = maxSize;
+                    }
+                } else {
+                    if (height > maxSize) {
+                        width = Math.round((width * maxSize) / height);
+                        height = maxSize;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    return reject(new Error('Could not get canvas context'));
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Get the data URL as JPEG for better compression and wider compatibility.
+                resolve(canvas.toDataURL('image/jpeg', 0.9)); // 0.9 is quality
+            };
+            img.onerror = (err) => reject(new Error('Image failed to load'));
+            if (event.target?.result) {
+                img.src = event.target.result as string;
+            } else {
+                reject(new Error('Could not read file for resizing'));
+            }
+        };
+        reader.onerror = (err) => reject(new Error('File reader error'));
+        reader.readAsDataURL(file);
+    });
+};
+
+
 export default function Home() {
     const [fileStates, setFileStates] = useState<FileState[]>([]);
     const [settings] = useSettings();
@@ -48,12 +94,9 @@ export default function Home() {
         );
 
         try {
-            const dataUrl = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(currentFileState.file);
-            });
+            // Automatically resize the image before sending to the AI
+            // This speeds up the process significantly for large images.
+            const dataUrl = await resizeImage(currentFileState.file, 1920); // Max size of 1920px
 
             const result = await runGenerateImageMetadata(dataUrl, settings);
 
