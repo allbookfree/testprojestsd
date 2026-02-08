@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ImageUploader } from '@/components/app/image-uploader';
 import { ImageCard } from '@/components/app/image-card';
-import { Bot, Download, FileText, UploadCloud, Loader, CircleCheck, Trash2 } from 'lucide-react';
+import { Bot, Download, FileText, UploadCloud, Loader, CircleCheck, Trash2, AlertTriangle } from 'lucide-react';
 import { PageHeader, PageHeaderDescription, PageHeaderHeading } from '@/components/app/page-header';
 import type { GenerateImageMetadataOutput } from '@/ai/flows/generate-image-metadata';
 import { Button } from '@/components/ui/button';
@@ -53,8 +53,7 @@ const resizeImage = (file: File, maxSize: number): Promise<string> => {
                 }
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // Get the data URL as JPEG for better compression and wider compatibility.
-                resolve(canvas.toDataURL('image/jpeg', 0.9)); // 0.9 is quality
+                resolve(canvas.toDataURL('image/jpeg', 0.9));
             };
             img.onerror = (err) => reject(new Error('Image failed to load'));
             if (event.target?.result) {
@@ -74,9 +73,10 @@ export default function Home() {
     const [settings] = useSettings();
     const { toast } = useToast();
     const isProcessingRef = useRef(false);
+    const [isQueueHalted, setIsQueueHalted] = useState(false);
 
     const processQueue = async () => {
-        if (isProcessingRef.current) return;
+        if (isProcessingRef.current || isQueueHalted) return;
 
         const nextFileIndex = fileStates.findIndex(f => f.status === 'queued');
         if (nextFileIndex === -1) {
@@ -85,8 +85,7 @@ export default function Home() {
         }
 
         isProcessingRef.current = true;
-        const currentFileState = fileStates[nextFileIndex];
-
+        
         setFileStates(prev =>
             prev.map((fs, index) =>
                 index === nextFileIndex ? { ...fs, status: 'processing' } : fs
@@ -94,14 +93,25 @@ export default function Home() {
         );
 
         try {
-            // Automatically resize the image before sending to the AI
-            // This speeds up the process significantly for large images.
-            const dataUrl = await resizeImage(currentFileState.file, 1920); // Max size of 1920px
+            const dataUrl = await resizeImage(fileStates[nextFileIndex].file, 1920);
 
             const result = await runGenerateImageMetadata(dataUrl, settings);
 
             if ('error' in result) {
-                throw new Error(result.error);
+                setIsQueueHalted(true);
+                setFileStates(prev =>
+                    prev.map((fs, index) => {
+                        if (index === nextFileIndex) {
+                            return { ...fs, status: 'error', error: result.error };
+                        }
+                        if (fs.status === 'queued') {
+                            return { ...fs, status: 'error', error: 'Processing halted due to an API error on a previous file.' };
+                        }
+                        return fs;
+                    })
+                );
+                isProcessingRef.current = false;
+                return;
             }
 
             setFileStates(prev =>
@@ -112,12 +122,17 @@ export default function Home() {
                 )
             );
         } catch (e: any) {
+            setIsQueueHalted(true);
             setFileStates(prev =>
-                prev.map((fs, index) =>
-                    index === nextFileIndex
-                        ? { ...fs, status: 'error', error: e.message || 'An unknown error occurred' }
-                        : fs
-                )
+                prev.map((fs, index) => {
+                    if (index === nextFileIndex) {
+                        return { ...fs, status: 'error', error: e.message || 'An unknown error occurred' };
+                    }
+                    if (fs.status === 'queued') {
+                        return { ...fs, status: 'error', error: 'Processing halted due to an unexpected error.' };
+                    }
+                    return fs;
+                })
             );
         } finally {
             isProcessingRef.current = false;
@@ -126,13 +141,14 @@ export default function Home() {
     
     useEffect(() => {
         const hasQueuedFiles = fileStates.some(f => f.status === 'queued');
-        if (hasQueuedFiles) {
+        if (hasQueuedFiles && !isQueueHalted) {
             processQueue();
         }
-    }, [fileStates]);
+    }, [fileStates, isQueueHalted]);
 
 
     const handleFilesAdded = (newFiles: File[]) => {
+        setIsQueueHalted(false);
         const newFileStates: FileState[] = newFiles.map(file => ({
             file,
             status: 'queued',
@@ -152,6 +168,7 @@ export default function Home() {
     };
 
     const handleClear = () => {
+        setIsQueueHalted(false);
         fileStates.forEach(fs => URL.revokeObjectURL(fs.previewUrl));
         setFileStates([]);
     };
@@ -188,6 +205,20 @@ export default function Home() {
     const getOverallStatus = () => {
         const total = fileStates.length;
         if (total === 0) return null;
+        
+        if (isQueueHalted) {
+             return (
+                <div className="mx-auto max-w-4xl space-y-4 mb-12">
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Processing Halted</AlertTitle>
+                        <AlertDescription>
+                            An API error occurred. Please check your API keys in settings. To resume, clear the current batch and upload again.
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            )
+        }
         
         const done = fileStates.filter(f => f.status === 'success' || f.status === 'error').length;
         const processing = fileStates.some(f => f.status === 'processing');
