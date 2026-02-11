@@ -6,6 +6,7 @@ import {
 } from '@/ai/flows/generate-image-metadata';
 import {
   generateImagePrompt,
+  GenerateImagePromptInput,
   GenerateImagePromptOutput,
 } from '@/ai/flows/generate-image-prompt';
 import type { AppSettings, ApiKey } from '@/hooks/use-settings';
@@ -53,11 +54,18 @@ export async function runGenerateImageMetadata(
   }
 }
 
+// Define a type for the advanced options
+type GenerateImagePromptAdvancedOptions = Pick<
+  GenerateImagePromptInput,
+  'creativity' | 'generateNegativePrompts' | 'avoidRepetition'
+>;
+
 export async function runGenerateImagePrompt(
   idea: string,
   count: number,
   systemPrompt: string,
-  settings: AppSettings
+  settings: AppSettings,
+  advancedOptions: GenerateImagePromptAdvancedOptions // Add this parameter
 ): Promise<GenerateImagePromptOutput | { error: string }> {
   try {
     if (!idea) {
@@ -68,13 +76,18 @@ export async function runGenerateImagePrompt(
     }
     
     const apiKeys = settings.apiKeys.map((k: ApiKey) => k.key);
-    const result = await generateImagePrompt({
+
+    // Combine all parameters into a single input object
+    const input: GenerateImagePromptInput = {
       idea,
       count,
-      systemPrompt: systemPrompt,
-      apiKeys: apiKeys,
+      systemPrompt,
+      apiKeys,
       model: settings.model,
-    });
+      ...advancedOptions, // Spread the advanced options here
+    };
+
+    const result = await generateImagePrompt(input);
     return result;
   } catch (e) {
     console.error(e);
@@ -106,7 +119,7 @@ export async function testApiKey(apiKey: string): Promise<ApiKeyTestResult> {
     });
     // A simple, low-cost operation to verify the key
     await tempAi.generate({
-      model: 'googleai/gemini-2.5-flash',
+      model: 'googleai/gemini-1.5-flash',
       prompt: 'test',
       config: {
         maxOutputTokens: 1,
