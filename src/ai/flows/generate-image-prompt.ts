@@ -1,10 +1,9 @@
 'use server';
 
-import { defineFlow, run } from 'genkit';
 import { z } from 'zod';
-import { ઉત્પાદન as multiStepPromptFlow } from './prompt-generator';
+import { ઉત્પાદન as multiStepPromptFlow, mainInputSchema as multiStepInputSchema } from './prompt-generator';
 
-// Define the input schema for the main flow
+// Input and output schemas remain the same
 export const GenerateImagePromptInput = z.object({
   idea: z.string().min(1, { message: 'Idea cannot be empty.' }),
   count: z.number().int().gt(0, { message: 'Count must be greater than 0.' }),
@@ -14,7 +13,6 @@ export const GenerateImagePromptInput = z.object({
   model: z.string().optional(),
 });
 
-// Define the output schema for the main flow
 export const GenerateImagePromptOutput = z.object({
   prompts: z.array(
     z.object({
@@ -24,37 +22,29 @@ export const GenerateImagePromptOutput = z.object({
   ),
 });
 
-// The main flow that orchestrates the multi-step prompt generation
-export const generateImagePrompt = defineFlow(
-  {
-    name: 'generateImagePrompt',
-    inputSchema: GenerateImagePromptInput,
-    outputSchema: GenerateImagePromptOutput,
-  },
-  async (input) => {
-    // This flow's responsibility is to validate input and delegate to the sub-flow.
-    console.log(`Delegating to multi-step flow for idea: "${input.idea}"`);
+// Rewritten main function (previously a genkit flow)
+export async function generateImagePrompt(input: z.infer<typeof GenerateImagePromptInput>): Promise<z.infer<typeof GenerateImagePromptOutput>> {
+  // 1. Validate the main input
+  const validatedInput = GenerateImagePromptInput.parse(input);
 
-    const finalResult = await run({
-      flow: multiStepPromptFlow,
-      input: {
-        idea: input.idea,
-        count: input.count,
-        imageStyle: input.imageStyle,
-        generateNegativePrompts: input.generateNegativePrompts,
-        apiKeys: input.apiKeys, // Pass keys down to the sub-flow
-        model: input.model,
-      },
-    });
+  console.log(`Delegating to multi-step flow for idea: "${validatedInput.idea}"`);
 
-    // The sub-flow might return a more flexible object, so we validate it here
-    // before returning to ensure the final output is clean.
-    const validation = GenerateImagePromptOutput.safeParse(finalResult);
-    if (!validation.success) {
-      console.error('Sub-flow output validation failed:', validation.error.issues);
-      throw new Error(`Output from sub-flow failed validation: ${validation.error.message}`);
-    }
+  // 2. Directly call the rewritten sub-flow function
+  const finalResult = await multiStepPromptFlow({
+    idea: validatedInput.idea,
+    count: validatedInput.count,
+    imageStyle: validatedInput.imageStyle,
+    generateNegativePrompts: validatedInput.generateNegativePrompts,
+    apiKeys: validatedInput.apiKeys,
+    model: validatedInput.model,
+  });
 
-    return validation.data;
+  // 3. Validate the output from the sub-flow
+  const validation = GenerateImagePromptOutput.safeParse(finalResult);
+  if (!validation.success) {
+    console.error('Sub-flow output validation failed:', validation.error.issues);
+    throw new Error(`Output from sub-flow failed validation: ${validation.error.message}`);
   }
-);
+
+  return validation.data;
+}

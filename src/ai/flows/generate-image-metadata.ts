@@ -1,10 +1,9 @@
 'use server';
 
-import { defineFlow, generate } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 
-// Schemas for the metadata generation flow
+// Schemas remain the same for input and output validation
 export const GenerateImageMetadataInput = z.object({
   imageUri: z.string(),
   apiKeys: z.array(z.string()).min(1),
@@ -22,7 +21,6 @@ export const GenerateImageMetadataOutput = z.object({
   keywords: z.array(z.string()),
 });
 
-// The prompt for the AI model
 const metadataPrompt = `
   You are an expert in stock photography metadata. Your task is to generate a compelling title, a detailed description, and relevant keywords for the provided image.
 
@@ -33,50 +31,47 @@ const metadataPrompt = `
   4.  **Generate Keywords:** List the {{keywordCount}} most relevant keywords. Include conceptual, subject, and technical terms. Do not include proper nouns or brand names.
   5.  **Creativity:** Adjust your response style based on the creativity level (0.1 for literal, 1.0 for highly creative): {{creativityLevel}}.
   6.  **Format:** Return the output as a single, valid JSON object with the keys "title", "description", and "keywords".
-
-  **Image URI:** {{imageUri}}
 `;
 
-// The main flow for generating image metadata
-export const generateImageMetadata = defineFlow(
-  {
-    name: 'generateImageMetadata',
-    inputSchema: GenerateImageMetadataInput,
-    outputSchema: GenerateImageMetadataOutput,
-  },
-  async (input) => {
-    // Create a temporary plugin instance with the user-provided API key.
-    const dynamicGoogleAI = googleAI({ apiKey: input.apiKeys });
-    const modelName = input.model || 'gemini-1.5-flash'; 
+// A simple async function to replace the genkit flow
+export async function generateImageMetadata(input: z.infer<typeof GenerateImageMetadataInput>): Promise<z.infer<typeof GenerateImageMetadataOutput>> {
+  // 1. Validate the input
+  const validatedInput = GenerateImageMetadataInput.parse(input);
 
-    const llmResponse = await generate({
-      // Use the model from the temporary, dynamically configured plugin.
-      model: dynamicGoogleAI.model(modelName),
-      prompt: metadataPrompt,
-      input: {
-        imageUri: input.imageUri,
-        titleLength: input.titleLength,
-        descriptionLength: input.descriptionLength,
-        keywordCount: input.keywordCount,
-        creativityLevel: input.creativityLevel,
-      },
-      config: {
-        temperature: input.creativityLevel,
-        responseFormat: 'json',
-      },
-    });
+  // 2. Initialize the Google AI client
+  const genAI = new GoogleGenerativeAI(validatedInput.apiKeys[0]);
+  const modelName = validatedInput.model || 'gemini-1.5-flash';
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      temperature: validatedInput.creativityLevel,
+      responseMimeType: 'application/json',
+    },
+  });
 
-    const output = llmResponse.output();
-    if (!output) {
-      throw new Error('Failed to get a valid response from the AI model.');
-    }
+  // 3. Prepare the prompt with dynamic values
+  const filledPrompt = metadataPrompt
+    .replace('{{titleLength}}', String(validatedInput.titleLength))
+    .replace('{{descriptionLength}}', String(validatedInput.descriptionLength))
+    .replace('{{keywordCount}}', String(validatedInput.keywordCount))
+    .replace('{{creativityLevel}}', String(validatedInput.creativityLevel));
 
-    const validation = GenerateImageMetadataOutput.safeParse(output);
-    if (!validation.success) {
-      console.error('Metadata output validation failed:', validation.error.issues);
-      throw new Error(`Output validation failed: ${validation.error.message}`);
-    }
+  // 4. Prepare the image part for the model
+  const imagePart = {
+    inlineData: {
+      mimeType: 'image/jpeg', // Assuming JPEG, adjust if necessary
+      data: validatedInput.imageUri.split(',')[1], // Extract base64 data
+    },
+  };
 
-    return validation.data;
-  }
-);
+  // 5. Generate content
+  const result = await model.generateContent([filledPrompt, imagePart]);
+  const response = result.response;
+  const text = response.text();
+
+  // 6. Parse and validate the output
+  const jsonOutput = JSON.parse(text);
+  const validatedOutput = GenerateImageMetadataOutput.parse(jsonOutput);
+
+  return validatedOutput;
+}

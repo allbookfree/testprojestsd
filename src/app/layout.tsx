@@ -1,21 +1,22 @@
-import type {Metadata} from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import type { Metadata } from 'next';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { Header } from '@/components/app/header';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
 import { cn } from '@/lib/utils';
 
 const fontSans = Inter({ 
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-sans',
-})
+});
 
 const fontMono = JetBrains_Mono({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-mono',
-})
+});
 
 export const metadata: Metadata = {
   title: 'ImageMeta Pro | AI-Powered SEO & Prompting',
@@ -32,7 +33,10 @@ export default function RootLayout({
       <head />
       <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable, fontMono.variable)}>
         <Header />
-        <main className="container mx-auto px-4 md:px-8">{children}</main>
+        <div className="main-container">
+          <Sidebar />
+          <main className="main-content">{children}</main>
+        </div>
         <Toaster />
       </body>
     </html>

@@ -1,13 +1,12 @@
 'use server';
 
-import { generate } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
-
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { generateImageMetadata, GenerateImageMetadataOutput } from '@/ai/flows/generate-image-metadata';
 import { generateImagePrompt, GenerateImagePromptInput, GenerateImagePromptOutput } from '@/ai/flows/generate-image-prompt';
 import type { AppSettings, ApiKey } from '@/hooks/use-settings';
 import type { ApiKeyTestResult } from '@/app/types';
 
+// This function already uses the new async flow, so no changes are needed.
 export async function runGenerateImageMetadata(
   imageUri: string,
   settings: AppSettings
@@ -39,6 +38,7 @@ type GenerateImagePromptOptions = {
   generateNegativePrompts: boolean;
 };
 
+// This function also uses the new async flow, so no changes are needed.
 export async function runGenerateImagePrompt(
   idea: string,
   count: number,
@@ -67,37 +67,36 @@ export async function runGenerateImagePrompt(
   }
 }
 
+// Rewritten testApiKey function using the official Google AI SDK
 export async function testApiKey(apiKey: string): Promise<ApiKeyTestResult> {
   if (!apiKey) {
     return { success: false, status: 'invalid', error: 'API key is empty.' };
   }
   try {
-    // Create a temporary plugin instance with the key to test.
-    // This does NOT interfere with the global Genkit configuration.
-    const testPlugin = googleAI({ apiKey, maxRetries: 0 });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Note: It seems maxRetries is not directly supported in the same way. Error handling will catch retriable issues.
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    // Use the model from the temporary plugin for the test generation.
-    await generate({
-      model: testPlugin.model('gemini-1.5-flash'),
-      prompt: 'test',
-      config: { maxOutputTokens: 1 },
-    });
+    // Perform a simple, low-token generation to test the key
+    await model.generateContent('test');
 
     return { success: true, status: 'valid' };
   } catch (e: any) {
     let errorMessage = 'An unknown error occurred.';
     let status: 'invalid' | 'rate-limited' = 'invalid';
+
+    // Improved error message parsing for Google AI SDK
     if (e.message) {
-      const lowerCaseMessage = e.message.toLowerCase();
-      if (lowerCaseMessage.includes('api key not valid')) {
-        errorMessage = 'The provided API key is not valid. Please check the key and try again.';
-        status = 'invalid';
-      } else if (lowerCaseMessage.includes('rate limit') || lowerCaseMessage.includes('quota')) {
-        status = 'rate-limited';
-        errorMessage = 'The key is valid but has run out of its free quota.';
-      } else {
-        errorMessage = e.message;
-      }
+        const lowerCaseMessage = e.message.toLowerCase();
+        if (lowerCaseMessage.includes('api key not valid') || lowerCaseMessage.includes('permission denied')) {
+            errorMessage = 'The provided API key is not valid. Please check the key and try again.';
+            status = 'invalid';
+        } else if (lowerCaseMessage.includes('quota') || lowerCaseMessage.includes('resource has been exhausted')) {
+            status = 'rate-limited';
+            errorMessage = 'The key is valid but has run out of its free quota or hit a rate limit.';
+        } else {
+            errorMessage = e.message;
+        }
     }
     return { success: false, status, error: errorMessage };
   }
