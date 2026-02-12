@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Plus, Trash2, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { useSettings, type ApiKey } from '@/hooks/use-settings';
+import { useSettings, type ApiKey, type CreativityLevel } from '@/hooks/use-settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Separator } from '../ui/separator';
 import { testApiKey } from '@/app/actions';
@@ -232,6 +232,26 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
                             <SelectItem value="googleai/gemini-1.5-flash-latest">Gemini 1.5 Flash</SelectItem>
                         </SelectContent>
                     </Select>
+                </div>
+
+                <div className="space-y-3">
+                    <Label htmlFor="creativity-level">Creativity Level</Label>
+                    <Select
+                        value={settings.creativityLevel}
+                        onValueChange={(value) => setSettings(prev => ({...prev, creativityLevel: value as CreativityLevel}))}
+                    >
+                        <SelectTrigger id="creativity-level" className="w-full">
+                            <SelectValue placeholder="Select a creativity level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Conservative">Conservative</SelectItem>
+                            <SelectItem value="Balanced">Balanced</SelectItem>
+                            <SelectItem value="Creative">Creative</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                        Controls the randomness of the output. 'Creative' is more unpredictable, while 'Conservative' is more deterministic.
+                    </p>
                 </div>
 
                 <div className="space-y-3 rounded-lg border bg-background/50 p-4">

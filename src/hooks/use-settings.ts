@@ -8,6 +8,8 @@ export interface ApiKey {
   note: string;
 }
 
+export type CreativityLevel = 'Conservative' | 'Balanced' | 'Creative';
+
 export const DEFAULT_SETTINGS = {
   apiKeys: [] as ApiKey[],
   model: 'googleai/gemini-2.5-flash',
@@ -15,6 +17,7 @@ export const DEFAULT_SETTINGS = {
   titleLength: 15,
   descriptionLength: 100,
   keywordCount: 40,
+  creativityLevel: 'Balanced' as CreativityLevel,
 };
 
 export type AppSettings = typeof DEFAULT_SETTINGS;

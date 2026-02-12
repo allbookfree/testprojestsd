@@ -1,1 +1,194 @@
-\'use client\';\n\nimport { useState } from \'react\';\nimport { Textarea } from \'@/components/ui/textarea\';\nimport { Button } from \'@/components/ui/button\';\nimport { runGenerateImagePrompt } from \'@/app/actions\';\nimport { useToast } from \'@/hooks/use-toast\';\nimport { Copy, Download, Wand2 } from \'lucide-react\';\nimport { Skeleton } from \'@/components/ui/skeleton\';\nimport { Input } from \'@/components/ui/input\';\nimport { Label } from \'@/components/ui/label\';\nimport { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from \'@/components/ui/table\';\nimport { Separator } from \'@/components/ui/separator\';\nimport { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from \'@/components/ui/accordion\';\nimport { PageHeader, PageHeaderDescription, PageHeaderHeading } from \'@/components/app/page-header\';\nimport { Card, CardContent, CardHeader, CardTitle, CardDescription } from \'@/components/ui/card\';\nimport { useSettings } from \'@/hooks/use-settings\';\nimport { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from \'@/components/ui/select\';\nimport { Switch } from \'@/components/ui/switch\';\n\nconst DEFAULT_SYSTEM_PROMPT = `You are an elite AI Creative Director and Stock Photography Portfolio Strategist. Your objective is to conceive and generate a portfolio of exceptionally unique, commercially valuable, and 100% halal-safe stock image prompts. The user\\\'s input is merely a seed idea; your primary mission is to build a diverse, high-value portfolio around it.\n\n---\n**Persona: The AI Portfolio Strategist**\n---\nYou are not a simple generator. You are a strategic thinker with a deep understanding of the stock media market. You identify profitable niches, analyze visual trends, and direct the creation of assets that sell. You are autonomous, creative, and relentlessly focused on quality and commercial viability.\n\n---\n**Core Mandate: Build a Profitable & Diverse Portfolio**\n---\nThe user wants to build a successful stock image business. Your goal is to generate a set of prompts that, when rendered, will form a balanced and highly marketable portfolio. When the user gives you a vague idea like "random objects," it is your responsibility to explore and generate prompts from a variety of the **Core Profitable Niches** listed below. This ensures the user\\\'s portfolio is not one-dimensional.\n\n---\n**Core Profitable Niches (Your Creative Universe)**\n---\nYou must cycle through these categories to ensure maximum portfolio diversity. Do not stick to just one.\n\n1.  **Technology & Future:** Abstract data visualizations, sleek servers, circuit boards, futuristic UI mockups, VR/AR concepts (no people), smart home devices.\n2.  **Business & Finance:** Minimalist office supplies, modern workspace flat lays, abstract representations of stock charts (bulls/bears as abstract shapes), stacks of generic currency-like objects, high-tech security concepts (e.g., abstract vaults).\n3.  **Healthcare & Science:** Sterile laboratory equipment (microscopes, test tubes), DNA-like abstract helices, modern medical devices, pristine hospital room corners (no beds), abstract pill arrangements.\n4.  **Food & Drink (Non-Perishable Focus):** Dry pasta shapes in artistic arrangements, colorful spices on a dark slate, high-end coffee beans, minimalist compositions of kitchen utensils, abstract liquid splashes (coffee, tea).\n5.  **Industrial & Tools:** Gleaming new hardware (nuts, bolts, gears), organized workshop tools, close-ups of heavy machinery parts, construction site materials (bricks, pipes) without workers.\n6.  **Abstract & Backgrounds:** 3D geometric renders (e.g., floating metaballs, crystalline structures), luxurious textures (marble, velvet, brushed metal), dramatic light and shadow plays, minimalist architectural details.\n7.  **Education:** Stacks of unbranded books, pristine chalkboards with abstract diagrams, art supplies (pencils, brushes) in a neat pattern.\n\n---\n**The Extreme Uniqueness Mandate (How to Defeat "Similar Content")**\n---\nTHIS IS YOUR MOST IMPORTANT RULE. Repetition is the enemy. Each prompt you generate must be radically different from the one before it.\n\n*   **DO NOT** just change a color or a single object.\n*   **DO** change the **NICHE**, the **SUBJECT**, the **COMPOSITION**, the **CAMERA ANGLE**, the **LIGHTING**, and the **MOOD**.\n\n**Example of POOR variety:**\n1. A red apple on a table.\n2. A green apple on a table.\n3. A blue apple on a table.\n\n**Example of EXCELLENT variety (Your Standard):**\n1.  (Tech) Macro photo of a pristine CPU socket, dramatic blue studio lighting, shallow depth of field, highlighting the gold contacts.\n2.  (Abstract) A 3D render of iridescent, translucent geometric crystals floating in a zero-gravity environment, soft pastel glow, 8K, photorealistic.\n3.  (Industrial) Top-down flat lay of antique, weathered brass woodworking tools arranged neatly on a dark, oiled wood background, warm, rustic lighting.\n4.  (Food) An extreme close-up of a single, perfect coffee bean, with a splash of liquid coffee frozen mid-air, dark and moody cinematic lighting.\n\n---\n**Aesthetic & Quality Control**\n---\n*   **Default Style:** Your default is high-end, clean, and professional. Think premium brand advertisement.\n*   **Keywords:** Automatically infuse prompts with professional keywords: \\\`photorealistic\\\`, \\\`8K\\\`, \\\`hyper-detailed\\\`, \\\`cinematic lighting\\\`, \\\`professional stock photo\\\`, \\\`sharp focus\\\`, \\\`studio quality\\\`.\n*   **User Style Input:** If the user mentions a style (e.g., \\\'vector\\\', \\\'icon\\\'), adapt the prompt to that style. For example, for \\\'vector\\\', you will generate prompts like: "Flat vector icon of a minimalist microscope, #ffffff background, clean lines, corporate style."\n\n---\n**Output Format**\n---\n*   Generate a JSON object with a single key "prompts", containing an array of the generated prompt strings.\n*   If \\\`generateNegativePrompts\\\` is true, each item in the array should be an object formatted like this: { "prompt": "...", "negativePrompt": "..." }. A good negative prompt is simple: "blurry, grainy, people, text, logos, watermark".\n\nYou have {{{count}}} prompts to create. Begin.`;\n\ninterface GeneratedPrompt {\n  prompt: string;\n  negativePrompt?: string;\n}\n\nexport default function PromptGeneratorPage() {\n  const [idea, setIdea] = useState(\'random\');\n  const [count, setCount] = useState(10);\n  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);\n  const [generatedPrompts, setGeneratedPrompts] = useState<GeneratedPrompt[]>([]);\n  const [isLoading, setIsLoading] = useState(false);\n  const { toast } = useToast();\n  const [settings] = useSettings();\n\n  // New state for advanced controls\n  const [creativity, setCreativity] = useState<\'low\' | \'medium\' | \'high\' | \'maximum\'>(\'high\');\n  const [imageStyle, setImageStyle] = useState<\'photorealistic\' | \'vector\'>(\'photorealistic\');\n  const [generateNegativePrompts, setGenerateNegativePrompts] = useState(true);\n  const [avoidRepetition, setAvoidRepetition] = useState(true);\n\n  const handleGenerate = async () => {\n    const finalSystemPrompt = systemPrompt.trim() === \'\' ? DEFAULT_SYSTEM_PROMPT : systemPrompt;\n\n    if (!idea.trim()) {\n      toast({ variant: \'destructive\', title: \'Idea is empty\', description: \'Please enter an idea for your image.\' });\n      return;\n    }\n    if (count <= 0) {\n      toast({ variant: \'destructive\', title: \'Invalid number\', description: \'Please enter a number of prompts greater than 0.\' });\n      return;\n    }\n    setIsLoading(true);\n    setGeneratedPrompts([]);\n\n    // Pass the style to the AI via the main idea input, as the master prompt is designed to handle it.\n    const finalIdea = `${idea}, ${imageStyle} style`;\n\n    const result = await runGenerateImagePrompt(finalIdea, count, finalSystemPrompt, settings, {\n        creativity,\n        generateNegativePrompts,\n        avoidRepetition,\n    });\n\n    setIsLoading(false);\n\n    if (\'error\' in result) {\n      toast({ variant: \'destructive\', title: \'Generation Failed\', description: result.error });\n    } else {\n      setGeneratedPrompts(result.prompts || []);\n      toast({ title: \'Prompts Generated!\', description: `${result.prompts?.length || 0} new image prompts are ready.` });\n    }\n  };\n\n  const handleCopy = (text: string) => {\n    navigator.clipboard.writeText(text);\n    toast({ title: \'Copied to clipboard!\' });\n  };\n  \n  const handleDownloadCSV = () => {\n    if (generatedPrompts.length === 0) return;\n\n    let csvContent = "data:text/csv;charset=utf-8,";\n    csvContent += "Serial,Prompt,Negative Prompt\\r\\n"; // Header\n\n    generatedPrompts.forEach((p, index) => {\n        const serial = index + 1;\n        const escapedPrompt = `\"${p.prompt.replace(/\"/g, \'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'\'-
+'use client';
+
+import { useState } from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { runGenerateImagePrompt } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { Copy, Download, Wand2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PageHeader, PageHeaderDescription, PageHeaderHeading } from '@/components/app/page-header';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useSettings } from '@/hooks/use-settings';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+
+interface GeneratedPrompt {
+  prompt: string;
+  negativePrompt?: string;
+}
+
+export default function PromptGeneratorPage() {
+  const [idea, setIdea] = useState('random objects');
+  const [count, setCount] = useState(10);
+  const [generatedPrompts, setGeneratedPrompts] = useState<GeneratedPrompt[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const [settings] = useSettings();
+
+  // Simplified controls for the new workflow
+  const [imageStyle, setImageStyle] = useState<'photorealistic' | 'vector'>('photorealistic');
+  const [generateNegativePrompts, setGenerateNegativePrompts] = useState(true);
+
+  const handleGenerate = async () => {
+    if (!idea.trim()) {
+      toast({ variant: 'destructive', title: 'Idea is empty', description: 'Please enter an idea for your image.' });
+      return;
+    }
+    if (count <= 0) {
+      toast({ variant: 'destructive', title: 'Invalid number', description: 'Please enter a number of prompts greater than 0.' });
+      return;
+    }
+    setIsLoading(true);
+    setGeneratedPrompts([]);
+
+    const result = await runGenerateImagePrompt(idea, count, settings, {
+      imageStyle,
+      generateNegativePrompts,
+    });
+
+    setIsLoading(false);
+
+    if ('error' in result) {
+      toast({ variant: 'destructive', title: 'Generation Failed', description: result.error });
+    } else {
+      setGeneratedPrompts(result.prompts || []);
+      toast({ title: 'Prompts Generated!', description: `${result.prompts?.length || 0} new image prompts are ready.` });
+    }
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({ title: 'Copied to clipboard!' });
+    }).catch(err => {
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy text.' });
+    });
+  };
+  
+  const handleDownloadCSV = () => {
+    if (generatedPrompts.length === 0) return;
+    let csvContent = "data:text/csv;charset=utf-8,Serial,Prompt,Negative Prompt\r\n";
+    generatedPrompts.forEach((p, index) => {
+        const serial = index + 1;
+        const escapedPrompt = `"${p.prompt.replace(/"/g, '""')}"`;
+        const escapedNegativePrompt = p.negativePrompt ? `"${p.negativePrompt.replace(/"/g, '""')}"` : ''
+        csvContent += `${serial},${escapedPrompt},${escapedNegativePrompt}\r\n`;
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'image-prompts.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className='flex h-full flex-col'>
+      <PageHeader>
+        <PageHeaderHeading>Advanced AI Image Prompt Generator</PageHeaderHeading>
+        <PageHeaderDescription>
+          Leverage a multi-step AI workflow (Research, Creative, Refine) to craft superior, commercially-viable image prompts for your portfolio.
+        </PageHeaderDescription>
+      </PageHeader>
+      <div className='flex-1 overflow-auto p-6'>
+        <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
+          <div className='flex flex-col gap-6'>
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuration</CardTitle>
+                <CardDescription>Start with a core idea and set your desired options.</CardDescription>
+              </CardHeader>
+              <CardContent className='space-y-4'>
+                <div className='grid gap-2'>
+                  <Label htmlFor='idea'>Your Core Idea</Label>
+                  <Textarea
+                    id='idea'
+                    placeholder="e.g., 'futuristic cityscape' or 'minimalist coffee beans'"
+                    value={idea}
+                    onChange={(e) => setIdea(e.target.value)}
+                    className='min-h-[80px] text-base'
+                  />
+                </div>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div className='grid gap-2'>
+                    <Label htmlFor='count'>Number of Prompts</Label>
+                    <Input id='count' type='number' value={count} onChange={(e) => setCount(parseInt(e.target.value, 10))} min='1' max='50' />
+                  </div>
+                  <div className='grid gap-2'>
+                    <Label htmlFor='image-style'>Image Style</Label>
+                    <Select value={imageStyle} onValueChange={(v: any) => setImageStyle(v)}>
+                      <SelectTrigger id='image-style'><SelectValue/></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='photorealistic'>Photorealistic</SelectItem>
+                        <SelectItem value='vector'>Vector</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className='flex items-center justify-between rounded-lg border p-4'>
+                  <Label htmlFor='generate-negative' className='flex flex-col gap-1'>
+                    <span>Generate Negative Prompts</span>
+                    <span className='text-sm font-normal text-muted-foreground'>Helps avoid common image issues.</span>
+                  </Label>
+                  <Switch id='generate-negative' checked={generateNegativePrompts} onCheckedChange={setGenerateNegativePrompts} />
+                </div>
+              </CardContent>
+            </Card>
+             <div className='flex justify-end'>
+                <Button onClick={handleGenerate} disabled={isLoading} className='w-full lg:w-auto'>
+                    {isLoading ? <><Wand2 className='mr-2 h-4 w-4 animate-spin' /><span>Generating...</span></> : <><Wand2 className='mr-2 h-4 w-4' /><span>Generate Prompts</span></>}
+                </Button>
+            </div>
+          </div>
+          <div className='flex flex-col gap-6'>
+            <Card className='flex-1'>
+              <CardHeader className='flex flex-row items-center justify-between'>
+                <CardTitle>Generated Prompts</CardTitle>
+                {generatedPrompts.length > 0 && <Button variant='ghost' size='sm' onClick={handleDownloadCSV}><Download className='mr-2 h-4 w-4' />Download CSV</Button>}
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className='space-y-4 p-4'>
+                    {[...Array(count)].map((_, i) => (
+                      <div key={i} className='flex items-start gap-4'>
+                         <div className="h-6 w-6 rounded-full bg-muted animate-pulse"></div>
+                        <div className='flex-1 space-y-2'>
+                          <Skeleton className='h-4 w-3/4' />
+                          <Skeleton className='h-4 w-1/2' />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : generatedPrompts.length === 0 ? (
+                  <div className='flex h-60 items-center justify-center rounded-lg border-2 border-dashed'>
+                    <p className='text-center text-muted-foreground'>Your generated prompts will appear here.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Prompt</TableHead>{generateNegativePrompts && <TableHead>Negative</TableHead>}<TableHead className='text-right'>Actions</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {generatedPrompts.map((p, index) => (
+                        <TableRow key={index}>
+                          <TableCell className='w-12 font-medium'>{index + 1}</TableCell>
+                          <TableCell>{p.prompt}</TableCell>
+                          {generateNegativePrompts && <TableCell className='text-muted-foreground'>{p.negativePrompt}</TableCell>}
+                          <TableCell className='text-right'>
+                            <Button variant='ghost' size='icon' onClick={() => handleCopy(p.prompt)}><Copy className='h-4 w-4' /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
